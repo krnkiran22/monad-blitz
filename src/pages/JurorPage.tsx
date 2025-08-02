@@ -46,10 +46,16 @@ const JurorPage: React.FC = () => {
     useState<LocalStorageDispute | null>(null);
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
   const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
+  const [showStatusConfirmation, setShowStatusConfirmation] =
+    useState<boolean>(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    disputeId: string;
+    status: string;
+  } | null>(null);
 
   // Dark mode toggle
-  const [darkMode, setDarkMode] = useState<boolean>(() =>
-    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+  const [darkMode, setDarkMode] = useState<boolean>(
+    () => window.matchMedia?.("(prefers-color-scheme: dark)").matches
   );
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -141,14 +147,30 @@ const JurorPage: React.FC = () => {
   // Handle review decision with confirmation
   const handleReviewDecision = (decision: string) => {
     if (!selectedDispute) return;
-    const isConfirmed = window.confirm(
-      `Are you sure you want to set the status to "${decision}" for Dispute #${selectedDispute.id}? This action cannot be undone.`
+    setPendingStatusChange({
+      disputeId: selectedDispute.id,
+      status: decision,
+    });
+    setShowStatusConfirmation(true);
+  };
+
+  // Confirm the status change
+  const confirmStatusChange = () => {
+    if (!pendingStatusChange) return;
+    updateDisputeStatus(
+      pendingStatusChange.disputeId,
+      pendingStatusChange.status
     );
-    if (isConfirmed) {
-      updateDisputeStatus(selectedDispute.id, decision);
-      setShowReviewModal(false);
-      setSelectedDispute(null);
-    }
+    setShowReviewModal(false);
+    setShowStatusConfirmation(false);
+    setSelectedDispute(null);
+    setPendingStatusChange(null);
+  };
+
+  // Cancel the status change
+  const cancelStatusChange = () => {
+    setShowStatusConfirmation(false);
+    setPendingStatusChange(null);
   };
 
   useEffect(() => {
@@ -574,6 +596,63 @@ const JurorPage: React.FC = () => {
                   className="bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-50 px-6 py-2 rounded-lg transition-all duration-200"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Status Change Confirmation Modal */}
+        {showStatusConfirmation && pendingStatusChange && selectedDispute && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 border dark:border-slate-700">
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">⚠️</div>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+                  Confirm Status Change
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Are you sure you want to make this decision?
+                </p>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-slate-900 rounded-lg p-4 mb-6 border dark:border-slate-700">
+                <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                  <strong>Dispute:</strong> #{selectedDispute.id}
+                </div>
+                <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                  <strong>Transaction:</strong>{" "}
+                  {selectedDispute.txHash.slice(0, 20)}...
+                </div>
+                <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                  <strong>New Status:</strong>
+                  <span
+                    className={`ml-2 px-2 py-1 rounded-full text-xs text-white ${getStatusColor(
+                      pendingStatusChange.status
+                    )}`}
+                  >
+                    {pendingStatusChange.status}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                  ⚠️ This action cannot be undone once confirmed.
+                </div>
+              </div>
+
+              <div className="flex space-x-4">
+                <button
+                  onClick={confirmStatusChange}
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 shadow-md"
+                >
+                  <span>✅</span>
+                  <span>Confirm Decision</span>
+                </button>
+                <button
+                  onClick={cancelStatusChange}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-50 px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <span>❌</span>
+                  <span>Cancel</span>
                 </button>
               </div>
             </div>

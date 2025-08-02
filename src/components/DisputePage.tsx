@@ -359,7 +359,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
       return disputeId;
     } catch (error) {
       console.error("Error submitting to contract:", error);
-      toast.warn("Failed to submit to blockchain, but data saved locally");
+      toast.warn("Failed to submit to blockchain");
       return null;
     }
   };
@@ -502,7 +502,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
       console.log("Total disputes stored:", limitedDisputes.length);
       console.log("==================================");
 
-      toast.success("Data saved to local storage!");
+      toast.success("Dispute data saved successfully!");
 
       // Analyze with AI if description is provided
       if (description.trim()) {
