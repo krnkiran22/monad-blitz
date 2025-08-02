@@ -24,7 +24,6 @@ const FORM_STEPS = [
 
 const DisputePage: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState<string>("");
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
 
   // Form data
@@ -158,7 +157,6 @@ const DisputePage: React.FC = () => {
       await ethProvider.send("eth_requestAccounts", []);
       const signer = await ethProvider.getSigner();
       setWalletAddress(await signer.getAddress());
-      setProvider(ethProvider);
       setContract(
         new ethers.Contract(
           DISPUTE_CONTRACT_ADDRESS,

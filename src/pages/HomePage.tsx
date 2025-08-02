@@ -1,12 +1,11 @@
 import Spline from '@splinetool/react-spline';
 
-const Dashboard = () => {
+const Home = () => {
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       {/* Main Spline component */}
       <Spline 
-        scene="https://prod.spline.design/MaDCOHnRuptcKeiK/scene.splinecode" 
-
+        scene="https://prod.spline.design/MaDCOHnRuptcKeiK/scene.splinecode"
         style={{
           position: 'absolute',
           top: 0,
@@ -19,4 +18,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Home;
