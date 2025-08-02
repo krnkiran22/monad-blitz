@@ -3,16 +3,18 @@ import { ethers } from "ethers";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ChatInterface } from "./ChatInterface";
+import DisputeResolutionABI from "../contracts/DisputeResolutionABI.json";
 
-// Replace with your deployed contract address and ABI
-const DISPUTE_CONTRACT_ADDRESS = "0xYourDisputeContractAddress";
-const DISPUTE_CONTRACT_ABI: any[] = [
-  // ... ABI here ...
-];
+// Replace with your deployed contract address
+const DISPUTE_CONTRACT_ADDRESS = "0xYourDeployedContractAddress";
 
 
 const PINATA_JWT =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwMWYyMzg4Zi0xMTY3LTQ0OGYtYTJkYi0yNjFjMTY2ZDYwMzUiLCJlbWFpbCI6Imdva2t1bGwwNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMDU0MTU5Y2RmMjJmOWFmOGU2OGUiLCJzY29wZWRLZXlTZWNyZXQiOiIzZTI3YTRmZWY3YjVhYjZjMGEzY2QxNWEyMDM2YTY1ZGViYTBmMjI0YzcwMzMyZTExNzBlM2U3ZmU2YmE3Y2NmIiwiZXhwIjoxNzg1NTU2NTI1fQ.a2PBwGcqua0Mg1YrgfkHU7xmFkAj6EIJBpd1uCcBJEE";
+
+// Groq AI Configuration
+const AI_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const AI_API_KEY = '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';
 
 const FORM_STEPS = [
   { id: 1, title: "Transaction Hash", icon: "🔗" },
@@ -42,6 +44,11 @@ const DisputePage: React.FC = () => {
   const [showIpfsSuccess, setShowIpfsSuccess] = useState(false);
   const [ipfsHash, setIpfsHash] = useState("");
   const [uploadingToIpfs, setUploadingToIpfs] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [analyzingWithAI, setAnalyzingWithAI] = useState(false);
+  const [showAiAnalysis, setShowAiAnalysis] = useState(false);
+  const [disputeId, setDisputeId] = useState<number | null>(null);
+  const [challengingDispute, setChallengingDispute] = useState(false);
 
   // Upload file to Pinata IPFS
   const uploadFileToPinata = async (file: File): Promise<string> => {
@@ -160,13 +167,214 @@ const DisputePage: React.FC = () => {
       setContract(
         new ethers.Contract(
           DISPUTE_CONTRACT_ADDRESS,
-          DISPUTE_CONTRACT_ABI,
+          DisputeResolutionABI,
           signer
         )
       );
       toast.success("Wallet connected!");
     } catch (err) {
       toast.error("Wallet connection failed.");
+    }
+  };
+
+  // Build dispute prompt for AI analysis
+  const buildDisputePrompt = (txHash: string, contractAddress: string, disputeDescription: string) => {
+    return `Analyze this blockchain transaction dispute:
+
+Transaction Hash: ${txHash}
+Contract Address: ${contractAddress || 'Not provided'}
+
+User Dispute: ${disputeDescription}
+
+Based on the transaction details and the user's complaint, determine:
+
+1. What actually happened in the transaction
+2. Whether the user's complaint is valid
+3. The appropriate resolution:
+
+   - **FULL REFUND**: If the transaction failed completely or didn't execute as expected
+   - **PARTIAL REFUND**: If the transaction partially succeeded but had issues
+   - **NO REFUND**: If the transaction was successful and the user's claim is incorrect
+   - **NOT POSSIBLE**: If the transaction type doesn't support refunds or other technical reasons
+
+Provide a clear analysis explaining:
+- What the transaction likely did based on the hash and contract
+- Whether the user's complaint is justified
+- Your refund recommendation (FULL REFUND/PARTIAL REFUND/NO REFUND/NOT POSSIBLE)
+- Reasoning for your decision
+
+Be concise but thorough in your analysis. Focus on providing a clear recommendation at the end.`;
+  };
+
+  // Analyze dispute with Groq AI
+  const analyzeDisputeWithAI = async (txHash: string, contractAddress: string, disputeDescription: string) => {
+    try {
+      if (!AI_API_KEY) {
+        throw new Error('AI API key not configured');
+      }
+
+      const prompt = buildDisputePrompt(txHash, contractAddress, disputeDescription);
+      
+      console.log("=== GROQ AI REQUEST ===");
+      console.log("API URL:", AI_API_URL);
+      console.log("Prompt being sent:", prompt);
+      console.log("======================");
+      
+      const response = await fetch(AI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${AI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama3-70b-8192',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an AI expert analyzing blockchain transaction disputes on Monad Testnet. Your job is to determine the appropriate refund action based on transaction details and user complaints. Always provide one of these clear recommendations: FULL REFUND, PARTIAL REFUND, NO REFUND, or NOT POSSIBLE. Be decisive and provide clear reasoning.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 1000
+        })
+      });
+
+      console.log("=== GROQ API RESPONSE STATUS ===");
+      console.log("Status:", response.status);
+      console.log("Status Text:", response.statusText);
+      console.log("================================");
+
+      if (!response.ok) {
+        throw new Error(`AI API request failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      console.log("=== GROQ API RAW RESPONSE ===");
+      console.log("Full response:", data);
+      console.log("=============================");
+      
+      if (data && data.choices && data.choices[0]) {
+        const aiResponse = data.choices[0].message.content;
+        console.log("=== EXTRACTED AI RESPONSE ===");
+        console.log(aiResponse);
+        console.log("=============================");
+        return aiResponse;
+      } else {
+        throw new Error('Invalid response from AI service');
+      }
+    } catch (error) {
+      console.error('=== AI ANALYSIS ERROR ===');
+      console.error('Error details:', error);
+      console.error('========================');
+      throw new Error('AI service temporarily unavailable');
+    }
+  };
+
+  // Submit dispute to smart contract
+  const submitDisputeToContract = async (ipfsHash: string, aiAnalysis: string) => {
+    if (!contract) {
+      console.log("Contract not available, skipping blockchain submission");
+      return null;
+    }
+
+    try {
+      console.log("=== SUBMITTING DISPUTE TO CONTRACT ===");
+      console.log("Contract address:", DISPUTE_CONTRACT_ADDRESS);
+      console.log("Data:", { txHash, description, contractAddress, recipientAddress, ipfsHash, aiAnalysis });
+      
+      // Step 1: Submit basic dispute info
+      const tx1 = await contract.submitDispute(
+        txHash,
+        description,
+        contractAddress || ""
+      );
+      
+      toast.info("Submitting dispute to blockchain...");
+      const receipt1 = await tx1.wait();
+      
+      // Extract dispute ID from event logs
+      const submitEvent = receipt1.logs.find((log: any) => {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          return parsed?.name === 'DisputeSubmitted';
+        } catch {
+          return false;
+        }
+      });
+      
+      let disputeId = null;
+      if (submitEvent) {
+        const parsed = contract.interface.parseLog(submitEvent);
+        disputeId = Number(parsed?.args?.disputeId);
+        console.log("Dispute submitted with ID:", disputeId);
+        toast.success(`Dispute submitted to blockchain with ID: ${disputeId}`);
+        
+        // Step 2: Set additional details
+        if (disputeId && (recipientAddress || ipfsHash || aiAnalysis)) {
+          try {
+            const tx2 = await contract.setDisputeDetails(
+              disputeId,
+              recipientAddress || "",
+              ipfsHash,
+              aiAnalysis
+            );
+            
+            toast.info("Adding dispute details...");
+            await tx2.wait();
+            toast.success("Dispute details added successfully!");
+          } catch (detailError) {
+            console.error("Error setting dispute details:", detailError);
+            toast.warn("Dispute created but failed to add some details");
+          }
+        }
+      }
+      
+      return disputeId;
+    } catch (error) {
+      console.error("Error submitting to contract:", error);
+      toast.warn("Failed to submit to blockchain, but data saved locally");
+      return null;
+    }
+  };
+
+  // Challenge dispute in smart contract
+  const challengeDisputeInContract = async (disputeId: number) => {
+    if (!contract || !disputeId) {
+      toast.error("Cannot challenge: Contract not available or invalid dispute ID");
+      return;
+    }
+
+    setChallengingDispute(true);
+    try {
+      console.log("=== CHALLENGING DISPUTE IN CONTRACT ===");
+      console.log("Dispute ID:", disputeId);
+      
+      const tx = await contract.challengeDispute(disputeId);
+      toast.info("Submitting challenge to blockchain...");
+      await tx.wait();
+      
+      toast.success("Dispute successfully challenged! Jurors will now review your case.");
+      
+      // Update local storage
+      const existingDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+      const updatedDisputes = existingDisputes.map((dispute: any) => {
+        if (dispute.disputeId === disputeId) {
+          return { ...dispute, status: "Challenged" };
+        }
+        return dispute;
+      });
+      localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
+      
+    } catch (error) {
+      console.error("Error challenging dispute:", error);
+      toast.error("Failed to challenge dispute");
+    } finally {
+      setChallengingDispute(false);
     }
   };
 
@@ -211,7 +419,7 @@ const DisputePage: React.FC = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
-  // Submit data to IPFS
+  // Submit data to IPFS and analyze with AI
   const submitToIpfs = async () => {
     if (!validateStep(1) || !validateStep(2) || !validateStep(4)) {
       toast.error("Please complete all required fields.");
@@ -225,6 +433,97 @@ const DisputePage: React.FC = () => {
       setIpfsHash(disputeIpfsHash);
 
       toast.success("Data successfully stored on IPFS!");
+
+      // Save data to local storage
+      const disputeData = {
+        id: Date.now().toString(),
+        txHash,
+        description,
+        contractAddress,
+        recipientAddress,
+        proofFilesCount: proofFiles.length,
+        proofFileNames: proofFiles.map(file => file.name),
+        ipfsHash: disputeIpfsHash,
+        timestamp: new Date().toISOString(),
+        submitter: walletAddress,
+        status: "Submitted",
+        version: "1.0"
+      };
+
+      // Get existing disputes from localStorage
+      const existingDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+      
+      // Add new dispute to the beginning of the array
+      existingDisputes.unshift(disputeData);
+      
+      // Keep only the last 50 disputes to prevent localStorage from growing too large
+      const limitedDisputes = existingDisputes.slice(0, 50);
+      
+      // Save back to localStorage
+      localStorage.setItem('resolveAI_disputes', JSON.stringify(limitedDisputes));
+      
+      console.log("=== DATA SAVED TO LOCAL STORAGE ===");
+      console.log("Dispute ID:", disputeData.id);
+      console.log("Total disputes stored:", limitedDisputes.length);
+      console.log("==================================");
+      
+      toast.success("Data saved to local storage!");
+
+      // Analyze with AI if description is provided
+      if (description.trim()) {
+        setAnalyzingWithAI(true);
+        toast.info("Analyzing dispute with AI...");
+        
+        try {
+          console.log("=== SENDING TO GROQ AI ===");
+          console.log("Transaction Hash:", txHash);
+          console.log("Contract Address:", contractAddress || 'Not provided');
+          console.log("Description:", description);
+          console.log("========================");
+          
+          const analysis = await analyzeDisputeWithAI(txHash, contractAddress, description);
+          
+          console.log("=== GROQ AI RESPONSE ===");
+          console.log(analysis);
+          console.log("========================");
+          
+          setAiAnalysis(analysis);
+          setShowAiAnalysis(true);
+          
+          // Submit to smart contract with AI analysis
+          const contractDisputeId = await submitDisputeToContract(disputeIpfsHash, analysis);
+          
+          // Update the dispute data in localStorage with AI analysis and contract dispute ID
+          const updatedDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+          if (updatedDisputes.length > 0) {
+            updatedDisputes[0].aiAnalysis = analysis;
+            updatedDisputes[0].status = "AI Analyzed";
+            if (contractDisputeId) {
+              updatedDisputes[0].disputeId = contractDisputeId;
+              updatedDisputes[0].onBlockchain = true;
+            }
+            localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
+          }
+          
+          toast.success("AI analysis completed! Check console for response.");
+        } catch (aiError) {
+          console.error("AI analysis error:", aiError);
+          toast.warn("AI analysis failed, but dispute data was stored successfully.");
+        } finally {
+          setAnalyzingWithAI(false);
+        }
+      } else {
+        // Submit to smart contract without AI analysis
+        const contractDisputeId = await submitDisputeToContract(disputeIpfsHash, "");
+        
+        // Update localStorage with contract dispute ID
+        const updatedDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+        if (updatedDisputes.length > 0 && contractDisputeId) {
+          updatedDisputes[0].disputeId = contractDisputeId;
+          updatedDisputes[0].onBlockchain = true;
+          localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
+        }
+      }
 
       // Show IPFS success modal
       setShowIpfsSuccess(true);
@@ -244,18 +543,50 @@ const DisputePage: React.FC = () => {
     }
   };
 
-  // Fetch user's disputes
+  // Fetch user's disputes from localStorage and blockchain
   const fetchDisputes = async () => {
-    if (!contract || !walletAddress) return;
     try {
-      const userDisputes = await contract.getUserDisputes(walletAddress);
+      // Load disputes from localStorage
+      const localDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+      
+      // Filter disputes for current wallet address if connected
+      const userDisputes = walletAddress 
+        ? localDisputes.filter((dispute: any) => 
+            dispute.submitter && dispute.submitter.toLowerCase() === walletAddress.toLowerCase()
+          )
+        : localDisputes;
+      
       setDisputes(userDisputes);
+      
+      console.log("=== LOADED DISPUTES FROM LOCAL STORAGE ===");
+      console.log("Total disputes found:", userDisputes.length);
+      console.log("Wallet address:", walletAddress);
+      console.log("=========================================");
+      
+      // Optionally try to fetch from blockchain contract as well
+      if (contract && walletAddress) {
+        try {
+          const blockchainDisputes = await contract.getUserDisputes(walletAddress);
+          console.log("Blockchain disputes found:", blockchainDisputes.length);
+          // You could merge blockchain and local disputes here if needed
+        } catch (err) {
+          console.log("No blockchain disputes found or contract not available");
+        }
+      }
     } catch (err) {
+      console.error("Error loading disputes:", err);
       setDisputes([]);
     }
   };
 
   useEffect(() => {
+    // Load disputes from localStorage on component mount
+    fetchDisputes();
+    // eslint-disable-next-line
+  }, [walletAddress]);
+
+  useEffect(() => {
+    // Also fetch when contract is available
     if (contract && walletAddress) fetchDisputes();
     // eslint-disable-next-line
   }, [contract, walletAddress]);
@@ -586,9 +917,9 @@ const DisputePage: React.FC = () => {
             ) : (
               <button
                 onClick={submitToIpfs}
-                disabled={submitting || uploadingToIpfs}
+                disabled={submitting || uploadingToIpfs || analyzingWithAI}
                 className={`px-8 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
-                  submitting || uploadingToIpfs
+                  submitting || uploadingToIpfs || analyzingWithAI
                     ? "bg-gray-700 text-gray-500 cursor-not-allowed"
                     : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform hover:scale-105"
                 }`}
@@ -598,6 +929,11 @@ const DisputePage: React.FC = () => {
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                     <span>Uploading to IPFS...</span>
                   </>
+                ) : analyzingWithAI ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    <span>Analyzing with AI...</span>
+                  </>
                 ) : submitting ? (
                   <>
                     <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
@@ -605,8 +941,8 @@ const DisputePage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <span>�</span>
-                    <span>Store on IPFS</span>
+                    <span>💾</span>
+                    <span>Store on IPFS & Analyze</span>
                   </>
                 )}
               </button>
@@ -659,41 +995,75 @@ const DisputePage: React.FC = () => {
                 ) : (
                   disputes.map((d, i) => (
                     <div
-                      key={i}
+                      key={d.id || i}
                       className="bg-gray-700/50 rounded-lg p-6 border border-gray-600 hover:border-gray-500 transition-all duration-200"
                     >
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div className="space-y-2">
                           <div className="font-semibold text-white">
-                            {d.category || "General"}
+                            Dispute #{d.id || (i + 1)}
                           </div>
                           <div className="text-sm text-gray-400 break-all">
-                            {d.txHash}
+                            TX: {d.txHash}
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            {d.description ? d.description.substring(0, 100) + '...' : 'No description'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Submitted: {new Date(d.timestamp).toLocaleString()}
                           </div>
                           <div className="text-sm">
                             <span
                               className={`px-2 py-1 rounded-full text-xs ${
-                                d.status === "Resolved"
+                                d.status === "AI Analyzed"
                                   ? "bg-green-600 text-white"
-                                  : d.status === "In Progress"
-                                  ? "bg-yellow-600 text-white"
-                                  : "bg-blue-600 text-white"
+                                  : d.status === "Submitted"
+                                  ? "bg-blue-600 text-white"
+                                  : d.status === "Challenged"
+                                  ? "bg-orange-600 text-white"
+                                  : "bg-gray-600 text-white"
                               }`}
                             >
-                              {d.status}
+                              {d.status || "Submitted"}
                             </span>
                           </div>
+                          {d.ipfsHash && (
+                            <div className="text-xs text-gray-500">
+                              IPFS: {d.ipfsHash.substring(0, 12)}...
+                            </div>
+                          )}
+                          {d.disputeId && (
+                            <div className="text-xs text-gray-500">
+                              Blockchain ID: #{d.disputeId}
+                            </div>
+                          )}
+                          {d.onBlockchain && (
+                            <div className="text-xs text-green-400">
+                              ✅ On Blockchain
+                            </div>
+                          )}
                         </div>
-                        <button
-                          className="mt-4 md:mt-0 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
-                          onClick={() => {
-                            setShowDisputes(false);
-                            setShowChat(true);
-                          }}
-                        >
-                          <span>💬</span>
-                          <span>View/Chat</span>
-                        </button>
+                        <div className="flex space-x-2 mt-4 md:mt-0">
+                          {d.ipfsHash && (
+                            <button
+                              onClick={() => window.open(`https://gateway.pinata.cloud/ipfs/${d.ipfsHash}`, "_blank")}
+                              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-1 text-sm"
+                            >
+                              <span>🌐</span>
+                              <span>IPFS</span>
+                            </button>
+                          )}
+                          <button
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-1 text-sm"
+                            onClick={() => {
+                              setShowDisputes(false);
+                              setShowChat(true);
+                            }}
+                          >
+                            <span>💬</span>
+                            <span>Chat</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -827,6 +1197,194 @@ const DisputePage: React.FC = () => {
               <div className="mt-4 text-center">
                 <p className="text-xs text-gray-500">
                   Keep this hash safe - it's your permanent record on IPFS
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI Analysis Modal */}
+        {showAiAnalysis && aiAnalysis && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-4xl w-full mx-4 border border-gray-700 max-h-[90vh] overflow-y-auto">
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4">🤖</div>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  AI Dispute Analysis Complete
+                </h2>
+                <p className="text-gray-400">
+                  Our AI has analyzed your dispute and provided recommendations
+                </p>
+              </div>
+
+              <div className="bg-gray-700 rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <span className="mr-2">📊</span>
+                  Analysis Results
+                </h3>
+                <div className="bg-gray-800 rounded p-4 border border-gray-600">
+                  <div className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">
+                    {aiAnalysis
+                      .replace(/\*\*/g, '') // Remove ** symbols
+                      .replace(/\*/g, '') // Remove * symbols
+                      .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+                      .trim()
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <span className="text-blue-400 text-xl">💡</span>
+                  <div>
+                    <h4 className="text-blue-300 font-semibold mb-1">AI Recommendation</h4>
+                    <p className="text-blue-200 text-sm">
+                      This analysis is AI-generated and should be used as guidance only. 
+                      Final decisions should consider additional context and human review.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => {
+                    // Clean the AI analysis by removing asterisks and formatting it properly
+                    const cleanedAnalysis = aiAnalysis
+                      .replace(/\*\*/g, '') // Remove all ** symbols
+                      .replace(/\*/g, '') // Remove all * symbols
+                      .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+                      .trim();
+
+                    const analysisTemplate = `
+=====================================
+BLOCKCHAIN DISPUTE ANALYSIS REPORT
+=====================================
+
+Report Generated: ${new Date().toLocaleString()}
+Platform: Resolve AI - Monad Testnet
+
+-------------------------------------
+DISPUTE DETAILS
+-------------------------------------
+
+Transaction Hash: ${txHash}
+Contract Address: ${contractAddress || 'Not provided'}
+Recipient Address: ${recipientAddress}
+Submitted By: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}
+
+Dispute Description:
+${description}
+
+-------------------------------------
+AI ANALYSIS RESULTS
+-------------------------------------
+
+${cleanedAnalysis}
+
+-------------------------------------
+DISCLAIMER
+-------------------------------------
+
+This analysis is generated by AI and should be used as guidance only.
+Final decisions should consider additional context and human review.
+The analysis is based on limited transaction information and user-provided
+dispute details.
+
+-------------------------------------
+TECHNICAL DETAILS
+-------------------------------------
+
+Analysis Model: Groq AI (llama3-70b-8192)
+Analysis Date: ${new Date().toISOString()}
+Platform: Resolve AI v1.0
+IPFS Hash: ${ipfsHash || 'Not available'}
+
+=====================================
+END OF REPORT
+=====================================`;
+
+                    const blob = new Blob([analysisTemplate], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `dispute-analysis-${txHash.slice(0, 8)}-${Date.now()}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2"
+                >
+                  <span>💾</span>
+                  <span>Download Analysis</span>
+                </button>
+              </div>
+
+              <div className="flex space-x-4 mt-4">
+                <button
+                  onClick={async () => {
+                    // Challenge the AI analysis
+                    console.log("=== CHALLENGING AI ANALYSIS ===");
+                    console.log("Transaction Hash:", txHash);
+                    console.log("Original Analysis:", aiAnalysis);
+                    console.log("User initiated challenge for dispute resolution");
+                    console.log("===============================");
+                    
+                    // Get the dispute from localStorage to find the disputeId
+                    const existingDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+                    const currentDispute = existingDisputes.find((dispute: any) => 
+                      dispute.txHash === txHash && 
+                      dispute.submitter?.toLowerCase() === walletAddress?.toLowerCase()
+                    );
+                    
+                    if (currentDispute?.disputeId && currentDispute.onBlockchain) {
+                      // Challenge in smart contract
+                      await challengeDisputeInContract(currentDispute.disputeId);
+                    } else {
+                      // Just update local storage if not on blockchain
+                      const updatedDisputes = existingDisputes.map((dispute: any) => {
+                        if (dispute.txHash === txHash && dispute.submitter?.toLowerCase() === walletAddress?.toLowerCase()) {
+                          return { ...dispute, status: "Challenged" };
+                        }
+                        return dispute;
+                      });
+                      localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
+                      toast.info("Challenge submitted! Your case will be reviewed by human experts.");
+                    }
+                    
+                    setShowAiAnalysis(false);
+                  }}
+                  disabled={challengingDispute}
+                  className={`flex-1 transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 px-6 py-3 rounded-lg ${
+                    challengingDispute 
+                      ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white"
+                  }`}
+                >
+                  {challengingDispute ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      <span>Challenging...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>⚖️</span>
+                      <span>Challenge Analysis</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowAiAnalysis(false)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <span>✅</span>
+                  <span>Close</span>
+                </button>
+              </div>
+
+              <div className="mt-4 text-center">
+                <p className="text-xs text-gray-500">
+                  Analysis powered by Groq AI - Keep this information for your records
                 </p>
               </div>
             </div>

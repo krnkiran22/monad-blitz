@@ -3,6 +3,7 @@ import DisputePage from './components/DisputePage';
 import ResolutionPage from './pages/ResolutionPage';
 import HelpPage from './pages/HelpPage';
 import Home from './pages/HomePage';
+import JurorPage from './pages/JurorPage';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/disputes" element={<DisputePage />} />
+          <Route path="/juror" element={<JurorPage />} />
           <Route path="/resolution/:id" element={<ResolutionPage />} />
           <Route path="/help" element={<HelpPage />} />
         </Routes>
