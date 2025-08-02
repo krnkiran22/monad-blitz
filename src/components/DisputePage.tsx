@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -8,13 +8,12 @@ import DisputeResolutionABI from "../contracts/DisputeResolutionABI.json";
 // Replace with your deployed contract address
 const DISPUTE_CONTRACT_ADDRESS = "0xYourDeployedContractAddress";
 
-
 const PINATA_JWT =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwMWYyMzg4Zi0xMTY3LTQ0OGYtYTJkYi0yNjFjMTY2ZDYwMzUiLCJlbWFpbCI6Imdva2t1bGwwNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMDU0MTU5Y2RmMjJmOWFmOGU2OGUiLCJzY29wZWRLZXlTZWNyZXQiOiIzZTI3YTRmZWY3YjVhYjZjMGEzY2QxNWEyMDM2YTY1ZGViYTBmMjI0YzcwMzMyZTExNzBlM2U3ZmU2YmE3Y2NmIiwiZXhwIjoxNzg1NTU2NTI1fQ.a2PBwGcqua0Mg1YrgfkHU7xmFkAj6EIJBpd1uCcBJEE";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwMWYyMzg4Zi0xMTY3LTQ0OGYtYTJkYi0yNjFjMTY2ZDYwMzUiLCJlbWFpbCI6Imdva2t1bGwwNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMDU0MTU5Y2RmMjJmOWFmOGU2OGUiLCJzY29wZWRLZXlTZWNyZXQiOiIzZTI3YTRmZWY3YjVhYjZjMGEzY2QxNWEyMDM2YTY1ZGViYTBmMjI0YzcwMzMyZTExNzBlM2U3ZmU2YmE3Y2NmIiwiZXhwIjoxNzg1NTU2NTI1fQ.a2PBwGcqua0Mg1YrgfkHU7xmFkAj6EIJBpd1uCcBJEE";
 
 // Groq AI Configuration
-const AI_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const AI_API_KEY = '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';
+const AI_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const AI_API_KEY = "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";
 
 const FORM_STEPS = [
   { id: 1, title: "Transaction Hash", icon: "🔗" },
@@ -178,11 +177,15 @@ const DisputePage: React.FC = () => {
   };
 
   // Build dispute prompt for AI analysis
-  const buildDisputePrompt = (txHash: string, contractAddress: string, disputeDescription: string) => {
+  const buildDisputePrompt = (
+    txHash: string,
+    contractAddress: string,
+    disputeDescription: string
+  ) => {
     return `Analyze this blockchain transaction dispute:
 
 Transaction Hash: ${txHash}
-Contract Address: ${contractAddress || 'Not provided'}
+Contract Address: ${contractAddress || "Not provided"}
 
 User Dispute: ${disputeDescription}
 
@@ -207,40 +210,49 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
   };
 
   // Analyze dispute with Groq AI
-  const analyzeDisputeWithAI = async (txHash: string, contractAddress: string, disputeDescription: string) => {
+  const analyzeDisputeWithAI = async (
+    txHash: string,
+    contractAddress: string,
+    disputeDescription: string
+  ) => {
     try {
       if (!AI_API_KEY) {
-        throw new Error('AI API key not configured');
+        throw new Error("AI API key not configured");
       }
 
-      const prompt = buildDisputePrompt(txHash, contractAddress, disputeDescription);
-      
+      const prompt = buildDisputePrompt(
+        txHash,
+        contractAddress,
+        disputeDescription
+      );
+
       console.log("=== GROQ AI REQUEST ===");
       console.log("API URL:", AI_API_URL);
       console.log("Prompt being sent:", prompt);
       console.log("======================");
-      
+
       const response = await fetch(AI_API_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${AI_API_KEY}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${AI_API_KEY}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'llama3-70b-8192',
+          model: "llama3-70b-8192",
           messages: [
             {
-              role: 'system',
-              content: 'You are an AI expert analyzing blockchain transaction disputes on Monad Testnet. Your job is to determine the appropriate refund action based on transaction details and user complaints. Always provide one of these clear recommendations: FULL REFUND, PARTIAL REFUND, NO REFUND, or NOT POSSIBLE. Be decisive and provide clear reasoning.'
+              role: "system",
+              content:
+                "You are an AI expert analyzing blockchain transaction disputes on Monad Testnet. Your job is to determine the appropriate refund action based on transaction details and user complaints. Always provide one of these clear recommendations: FULL REFUND, PARTIAL REFUND, NO REFUND, or NOT POSSIBLE. Be decisive and provide clear reasoning.",
             },
             {
-              role: 'user',
-              content: prompt
-            }
+              role: "user",
+              content: prompt,
+            },
           ],
           temperature: 0.3,
-          max_tokens: 1000
-        })
+          max_tokens: 1000,
+        }),
       });
 
       console.log("=== GROQ API RESPONSE STATUS ===");
@@ -253,11 +265,11 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
       }
 
       const data = await response.json();
-      
+
       console.log("=== GROQ API RAW RESPONSE ===");
       console.log("Full response:", data);
       console.log("=============================");
-      
+
       if (data && data.choices && data.choices[0]) {
         const aiResponse = data.choices[0].message.content;
         console.log("=== EXTRACTED AI RESPONSE ===");
@@ -265,18 +277,21 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
         console.log("=============================");
         return aiResponse;
       } else {
-        throw new Error('Invalid response from AI service');
+        throw new Error("Invalid response from AI service");
       }
     } catch (error) {
-      console.error('=== AI ANALYSIS ERROR ===');
-      console.error('Error details:', error);
-      console.error('========================');
-      throw new Error('AI service temporarily unavailable');
+      console.error("=== AI ANALYSIS ERROR ===");
+      console.error("Error details:", error);
+      console.error("========================");
+      throw new Error("AI service temporarily unavailable");
     }
   };
 
   // Submit dispute to smart contract
-  const submitDisputeToContract = async (ipfsHash: string, aiAnalysis: string) => {
+  const submitDisputeToContract = async (
+    ipfsHash: string,
+    aiAnalysis: string
+  ) => {
     if (!contract) {
       console.log("Contract not available, skipping blockchain submission");
       return null;
@@ -285,35 +300,42 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
     try {
       console.log("=== SUBMITTING DISPUTE TO CONTRACT ===");
       console.log("Contract address:", DISPUTE_CONTRACT_ADDRESS);
-      console.log("Data:", { txHash, description, contractAddress, recipientAddress, ipfsHash, aiAnalysis });
-      
+      console.log("Data:", {
+        txHash,
+        description,
+        contractAddress,
+        recipientAddress,
+        ipfsHash,
+        aiAnalysis,
+      });
+
       // Step 1: Submit basic dispute info
       const tx1 = await contract.submitDispute(
         txHash,
         description,
         contractAddress || ""
       );
-      
+
       toast.info("Submitting dispute to blockchain...");
       const receipt1 = await tx1.wait();
-      
+
       // Extract dispute ID from event logs
       const submitEvent = receipt1.logs.find((log: any) => {
         try {
           const parsed = contract.interface.parseLog(log);
-          return parsed?.name === 'DisputeSubmitted';
+          return parsed?.name === "DisputeSubmitted";
         } catch {
           return false;
         }
       });
-      
+
       let disputeId = null;
       if (submitEvent) {
         const parsed = contract.interface.parseLog(submitEvent);
         disputeId = Number(parsed?.args?.disputeId);
         console.log("Dispute submitted with ID:", disputeId);
         toast.success(`Dispute submitted to blockchain with ID: ${disputeId}`);
-        
+
         // Step 2: Set additional details
         if (disputeId && (recipientAddress || ipfsHash || aiAnalysis)) {
           try {
@@ -323,7 +345,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
               ipfsHash,
               aiAnalysis
             );
-            
+
             toast.info("Adding dispute details...");
             await tx2.wait();
             toast.success("Dispute details added successfully!");
@@ -333,7 +355,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
           }
         }
       }
-      
+
       return disputeId;
     } catch (error) {
       console.error("Error submitting to contract:", error);
@@ -345,7 +367,9 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
   // Challenge dispute in smart contract
   const challengeDisputeInContract = async (disputeId: number) => {
     if (!contract || !disputeId) {
-      toast.error("Cannot challenge: Contract not available or invalid dispute ID");
+      toast.error(
+        "Cannot challenge: Contract not available or invalid dispute ID"
+      );
       return;
     }
 
@@ -353,23 +377,29 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
     try {
       console.log("=== CHALLENGING DISPUTE IN CONTRACT ===");
       console.log("Dispute ID:", disputeId);
-      
+
       const tx = await contract.challengeDispute(disputeId);
       toast.info("Submitting challenge to blockchain...");
       await tx.wait();
-      
-      toast.success("Dispute successfully challenged! Jurors will now review your case.");
-      
+
+      toast.success(
+        "Dispute successfully challenged! Jurors will now review your case."
+      );
+
       // Update local storage
-      const existingDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+      const existingDisputes = JSON.parse(
+        localStorage.getItem("resolveAI_disputes") || "[]"
+      );
       const updatedDisputes = existingDisputes.map((dispute: any) => {
         if (dispute.disputeId === disputeId) {
           return { ...dispute, status: "Challenged" };
         }
         return dispute;
       });
-      localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
-      
+      localStorage.setItem(
+        "resolveAI_disputes",
+        JSON.stringify(updatedDisputes)
+      );
     } catch (error) {
       console.error("Error challenging dispute:", error);
       toast.error("Failed to challenge dispute");
@@ -442,59 +472,73 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
         contractAddress,
         recipientAddress,
         proofFilesCount: proofFiles.length,
-        proofFileNames: proofFiles.map(file => file.name),
+        proofFileNames: proofFiles.map((file) => file.name),
         ipfsHash: disputeIpfsHash,
         timestamp: new Date().toISOString(),
         submitter: walletAddress,
         status: "Submitted",
-        version: "1.0"
+        version: "1.0",
       };
 
       // Get existing disputes from localStorage
-      const existingDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
-      
+      const existingDisputes = JSON.parse(
+        localStorage.getItem("resolveAI_disputes") || "[]"
+      );
+
       // Add new dispute to the beginning of the array
       existingDisputes.unshift(disputeData);
-      
+
       // Keep only the last 50 disputes to prevent localStorage from growing too large
       const limitedDisputes = existingDisputes.slice(0, 50);
-      
+
       // Save back to localStorage
-      localStorage.setItem('resolveAI_disputes', JSON.stringify(limitedDisputes));
-      
+      localStorage.setItem(
+        "resolveAI_disputes",
+        JSON.stringify(limitedDisputes)
+      );
+
       console.log("=== DATA SAVED TO LOCAL STORAGE ===");
       console.log("Dispute ID:", disputeData.id);
       console.log("Total disputes stored:", limitedDisputes.length);
       console.log("==================================");
-      
+
       toast.success("Data saved to local storage!");
 
       // Analyze with AI if description is provided
       if (description.trim()) {
         setAnalyzingWithAI(true);
         toast.info("Analyzing dispute with AI...");
-        
+
         try {
           console.log("=== SENDING TO GROQ AI ===");
           console.log("Transaction Hash:", txHash);
-          console.log("Contract Address:", contractAddress || 'Not provided');
+          console.log("Contract Address:", contractAddress || "Not provided");
           console.log("Description:", description);
           console.log("========================");
-          
-          const analysis = await analyzeDisputeWithAI(txHash, contractAddress, description);
-          
+
+          const analysis = await analyzeDisputeWithAI(
+            txHash,
+            contractAddress,
+            description
+          );
+
           console.log("=== GROQ AI RESPONSE ===");
           console.log(analysis);
           console.log("========================");
-          
+
           setAiAnalysis(analysis);
           setShowAiAnalysis(true);
-          
+
           // Submit to smart contract with AI analysis
-          const contractDisputeId = await submitDisputeToContract(disputeIpfsHash, analysis);
-          
+          const contractDisputeId = await submitDisputeToContract(
+            disputeIpfsHash,
+            analysis
+          );
+
           // Update the dispute data in localStorage with AI analysis and contract dispute ID
-          const updatedDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+          const updatedDisputes = JSON.parse(
+            localStorage.getItem("resolveAI_disputes") || "[]"
+          );
           if (updatedDisputes.length > 0) {
             updatedDisputes[0].aiAnalysis = analysis;
             updatedDisputes[0].status = "AI Analyzed";
@@ -502,26 +546,39 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
               updatedDisputes[0].disputeId = contractDisputeId;
               updatedDisputes[0].onBlockchain = true;
             }
-            localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
+            localStorage.setItem(
+              "resolveAI_disputes",
+              JSON.stringify(updatedDisputes)
+            );
           }
-          
+
           toast.success("AI analysis completed! Check console for response.");
         } catch (aiError) {
           console.error("AI analysis error:", aiError);
-          toast.warn("AI analysis failed, but dispute data was stored successfully.");
+          toast.warn(
+            "AI analysis failed, but dispute data was stored successfully."
+          );
         } finally {
           setAnalyzingWithAI(false);
         }
       } else {
         // Submit to smart contract without AI analysis
-        const contractDisputeId = await submitDisputeToContract(disputeIpfsHash, "");
-        
+        const contractDisputeId = await submitDisputeToContract(
+          disputeIpfsHash,
+          ""
+        );
+
         // Update localStorage with contract dispute ID
-        const updatedDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
+        const updatedDisputes = JSON.parse(
+          localStorage.getItem("resolveAI_disputes") || "[]"
+        );
         if (updatedDisputes.length > 0 && contractDisputeId) {
           updatedDisputes[0].disputeId = contractDisputeId;
           updatedDisputes[0].onBlockchain = true;
-          localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
+          localStorage.setItem(
+            "resolveAI_disputes",
+            JSON.stringify(updatedDisputes)
+          );
         }
       }
 
@@ -547,26 +604,32 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
   const fetchDisputes = async () => {
     try {
       // Load disputes from localStorage
-      const localDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
-      
+      const localDisputes = JSON.parse(
+        localStorage.getItem("resolveAI_disputes") || "[]"
+      );
+
       // Filter disputes for current wallet address if connected
-      const userDisputes = walletAddress 
-        ? localDisputes.filter((dispute: any) => 
-            dispute.submitter && dispute.submitter.toLowerCase() === walletAddress.toLowerCase()
+      const userDisputes = walletAddress
+        ? localDisputes.filter(
+            (dispute: any) =>
+              dispute.submitter &&
+              dispute.submitter.toLowerCase() === walletAddress.toLowerCase()
           )
         : localDisputes;
-      
+
       setDisputes(userDisputes);
-      
+
       console.log("=== LOADED DISPUTES FROM LOCAL STORAGE ===");
       console.log("Total disputes found:", userDisputes.length);
       console.log("Wallet address:", walletAddress);
       console.log("=========================================");
-      
+
       // Optionally try to fetch from blockchain contract as well
       if (contract && walletAddress) {
         try {
-          const blockchainDisputes = await contract.getUserDisputes(walletAddress);
+          const blockchainDisputes = await contract.getUserDisputes(
+            walletAddress
+          );
           console.log("Blockchain disputes found:", blockchainDisputes.length);
           // You could merge blockchain and local disputes here if needed
         } catch (err) {
@@ -608,7 +671,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
             </div>
             <div>
               <input
-                className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-all duration-300 hover:border-gray-500 shadow-inner placeholder-gray-400"
                 placeholder="0x1234567890abcdef..."
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
@@ -632,7 +695,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
             </div>
             <div>
               <textarea
-                className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-all duration-300 hover:border-gray-500 shadow-inner placeholder-gray-400 resize-none"
                 placeholder="Describe what happened, what you expected, and what went wrong..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -656,10 +719,10 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
               </p>
             </div>
             <div>
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 hover:border-gray-500 transition-all duration-300 shadow-inner">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <svg
-                    className="w-8 h-8 mb-4 text-gray-400"
+                    className="w-8 h-8 mb-4 text-gray-400 group-hover:text-gray-300 transition-colors duration-300"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -692,12 +755,12 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                   {proofFiles.map((file, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between bg-gray-800 p-3 rounded-lg"
+                      className="flex items-center justify-between bg-gray-800 p-3 rounded-lg border border-gray-600 hover:border-gray-500 transition-all duration-300 shadow-sm"
                     >
                       <span className="text-white text-sm">{file.name}</span>
                       <button
                         onClick={() => removeFile(index)}
-                        className="text-red-400 hover:text-red-300 transition-colors"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-400/10 p-1 rounded transition-all duration-300"
                       >
                         ✕
                       </button>
@@ -727,7 +790,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                   Contract Address (Optional)
                 </label>
                 <input
-                  className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-all duration-300 hover:border-gray-500 shadow-inner placeholder-gray-400"
                   placeholder="0x1234567890abcdef..."
                   value={contractAddress}
                   onChange={(e) => setContractAddress(e.target.value)}
@@ -738,7 +801,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                   Recipient Address *
                 </label>
                 <input
-                  className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full bg-gray-800 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-all duration-300 hover:border-gray-500 shadow-inner placeholder-gray-400"
                   placeholder="0x1234567890abcdef..."
                   value={recipientAddress}
                   onChange={(e) => setRecipientAddress(e.target.value)}
@@ -761,24 +824,28 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                 Review your data before storing it permanently on IPFS
               </p>
             </div>
-            <div className="bg-gray-800 rounded-lg p-6 space-y-4">
+            <div className="bg-gray-800 rounded-lg p-6 space-y-4 border border-gray-600 shadow-inner">
               <div>
                 <label className="text-sm font-medium text-gray-300">
                   Transaction Hash:
                 </label>
-                <p className="text-white break-all">{txHash}</p>
+                <p className="text-white break-all bg-gray-700 p-3 rounded mt-1 border border-gray-600">
+                  {txHash}
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-300">
                   Description:
                 </label>
-                <p className="text-white">{description}</p>
+                <p className="text-white bg-gray-700 p-3 rounded mt-1 border border-gray-600">
+                  {description}
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-300">
                   Proof Files:
                 </label>
-                <p className="text-white">
+                <p className="text-white bg-gray-700 p-3 rounded mt-1 border border-gray-600">
                   {proofFiles.length} file(s) uploaded
                 </p>
               </div>
@@ -786,14 +853,18 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                 <label className="text-sm font-medium text-gray-300">
                   Recipient Address:
                 </label>
-                <p className="text-white break-all">{recipientAddress}</p>
+                <p className="text-white break-all bg-gray-700 p-3 rounded mt-1 border border-gray-600">
+                  {recipientAddress}
+                </p>
               </div>
               {contractAddress && (
                 <div>
                   <label className="text-sm font-medium text-gray-300">
                     Contract Address:
                   </label>
-                  <p className="text-white break-all">{contractAddress}</p>
+                  <p className="text-white break-all bg-gray-700 p-3 rounded mt-1 border border-gray-600">
+                    {contractAddress}
+                  </p>
                 </div>
               )}
               <div className="border-t border-gray-600 pt-4">
@@ -849,24 +920,26 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
 
       <div className="max-w-4xl mx-auto p-6">
         {/* Step Indicator */}
-        <div className="mb-8">
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-600 p-6 mb-8 shadow-lg">
           <div className="flex items-center justify-center space-x-4 mb-4">
             {FORM_STEPS.map((step) => (
               <div key={step.id} className="flex items-center">
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 ${
-                    currentStep >= step.id
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                      : "bg-gray-700 text-gray-400"
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 shadow-md ${
+                    currentStep === step.id
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white ring-4 ring-blue-500/30 transform scale-110"
+                      : currentStep > step.id
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-700 text-gray-400 border border-gray-600"
                   }`}
                 >
                   {currentStep > step.id ? "✓" : step.id}
                 </div>
                 {step.id < FORM_STEPS.length && (
                   <div
-                    className={`w-16 h-1 mx-2 transition-all duration-200 ${
+                    className={`w-16 h-1 mx-2 transition-all duration-300 rounded-full ${
                       currentStep > step.id
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600"
+                        ? "bg-green-600 shadow-sm"
                         : "bg-gray-700"
                     }`}
                   />
@@ -875,7 +948,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
             ))}
           </div>
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-white mb-1">
               Step {currentStep} of {FORM_STEPS.length}:{" "}
               {FORM_STEPS[currentStep - 1]?.title}
             </h2>
@@ -883,18 +956,18 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
         </div>
 
         {/* Main Form Card */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 shadow-2xl">
+        <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-600 p-8 shadow-2xl hover:border-gray-500 transition-all duration-300">
           {renderStepContent()}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-700">
+          <div className="flex justify-between mt-8 pt-6 border-t border-gray-600">
             <button
               onClick={prevStep}
               disabled={currentStep === 1}
-              className={`px-6 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+              className={`px-6 py-3 rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md ${
                 currentStep === 1
                   ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                  : "bg-gray-700 hover:bg-gray-600 text-white transform hover:scale-105"
+                  : "bg-gray-700 hover:bg-gray-600 text-white transform hover:scale-105 hover:shadow-lg"
               }`}
             >
               <span>←</span>
@@ -905,10 +978,10 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
               <button
                 onClick={nextStep}
                 disabled={!validateStep(currentStep)}
-                className={`px-6 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+                className={`px-6 py-3 rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md ${
                   !validateStep(currentStep)
                     ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform hover:scale-105"
+                    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform hover:scale-105 hover:shadow-lg"
                 }`}
               >
                 <span>Next</span>
@@ -918,10 +991,10 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
               <button
                 onClick={submitToIpfs}
                 disabled={submitting || uploadingToIpfs || analyzingWithAI}
-                className={`px-8 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+                className={`px-8 py-3 rounded-lg transition-all duration-300 flex items-center space-x-2 shadow-md ${
                   submitting || uploadingToIpfs || analyzingWithAI
                     ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform hover:scale-105"
+                    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform hover:scale-105 hover:shadow-lg"
                 }`}
               >
                 {uploadingToIpfs ? (
@@ -960,7 +1033,7 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
             className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 text-lg font-semibold shadow-lg"
           >
             <span>🌐</span>
-            <span>View Your IPFS Data</span>
+            <span>View Your Disputes Data</span>
             <span className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-sm">
               {disputes.length}
             </span>
@@ -1001,13 +1074,15 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div className="space-y-2">
                           <div className="font-semibold text-white">
-                            Dispute #{d.id || (i + 1)}
+                            Dispute #{d.id || i + 1}
                           </div>
                           <div className="text-sm text-gray-400 break-all">
                             TX: {d.txHash}
                           </div>
                           <div className="text-sm text-gray-400">
-                            {d.description ? d.description.substring(0, 100) + '...' : 'No description'}
+                            {d.description
+                              ? d.description.substring(0, 100) + "..."
+                              : "No description"}
                           </div>
                           <div className="text-xs text-gray-500">
                             Submitted: {new Date(d.timestamp).toLocaleString()}
@@ -1046,7 +1121,12 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                         <div className="flex space-x-2 mt-4 md:mt-0">
                           {d.ipfsHash && (
                             <button
-                              onClick={() => window.open(`https://gateway.pinata.cloud/ipfs/${d.ipfsHash}`, "_blank")}
+                              onClick={() =>
+                                window.open(
+                                  `https://gateway.pinata.cloud/ipfs/${d.ipfsHash}`,
+                                  "_blank"
+                                )
+                              }
                               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-1 text-sm"
                             >
                               <span>🌐</span>
@@ -1225,11 +1305,10 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                 <div className="bg-gray-800 rounded p-4 border border-gray-600">
                   <div className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">
                     {aiAnalysis
-                      .replace(/\*\*/g, '') // Remove ** symbols
-                      .replace(/\*/g, '') // Remove * symbols
-                      .replace(/#{1,6}\s*/g, '') // Remove markdown headers
-                      .trim()
-                    }
+                      .replace(/\*\*/g, "") // Remove ** symbols
+                      .replace(/\*/g, "") // Remove * symbols
+                      .replace(/#{1,6}\s*/g, "") // Remove markdown headers
+                      .trim()}
                   </div>
                 </div>
               </div>
@@ -1238,10 +1317,13 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                 <div className="flex items-start space-x-3">
                   <span className="text-blue-400 text-xl">💡</span>
                   <div>
-                    <h4 className="text-blue-300 font-semibold mb-1">AI Recommendation</h4>
+                    <h4 className="text-blue-300 font-semibold mb-1">
+                      AI Recommendation
+                    </h4>
                     <p className="text-blue-200 text-sm">
-                      This analysis is AI-generated and should be used as guidance only. 
-                      Final decisions should consider additional context and human review.
+                      This analysis is AI-generated and should be used as
+                      guidance only. Final decisions should consider additional
+                      context and human review.
                     </p>
                   </div>
                 </div>
@@ -1252,9 +1334,9 @@ Be concise but thorough in your analysis. Focus on providing a clear recommendat
                   onClick={() => {
                     // Clean the AI analysis by removing asterisks and formatting it properly
                     const cleanedAnalysis = aiAnalysis
-                      .replace(/\*\*/g, '') // Remove all ** symbols
-                      .replace(/\*/g, '') // Remove all * symbols
-                      .replace(/#{1,6}\s*/g, '') // Remove markdown headers
+                      .replace(/\*\*/g, "") // Remove all ** symbols
+                      .replace(/\*/g, "") // Remove all * symbols
+                      .replace(/#{1,6}\s*/g, "") // Remove markdown headers
                       .trim();
 
                     const analysisTemplate = `
@@ -1270,7 +1352,7 @@ DISPUTE DETAILS
 -------------------------------------
 
 Transaction Hash: ${txHash}
-Contract Address: ${contractAddress || 'Not provided'}
+Contract Address: ${contractAddress || "Not provided"}
 Recipient Address: ${recipientAddress}
 Submitted By: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}
 
@@ -1299,17 +1381,22 @@ TECHNICAL DETAILS
 Analysis Model: Groq AI (llama3-70b-8192)
 Analysis Date: ${new Date().toISOString()}
 Platform: Resolve AI v1.0
-IPFS Hash: ${ipfsHash || 'Not available'}
+IPFS Hash: ${ipfsHash || "Not available"}
 
 =====================================
 END OF REPORT
 =====================================`;
 
-                    const blob = new Blob([analysisTemplate], { type: 'text/plain' });
+                    const blob = new Blob([analysisTemplate], {
+                      type: "text/plain",
+                    });
                     const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
+                    const a = document.createElement("a");
                     a.href = url;
-                    a.download = `dispute-analysis-${txHash.slice(0, 8)}-${Date.now()}.txt`;
+                    a.download = `dispute-analysis-${txHash.slice(
+                      0,
+                      8
+                    )}-${Date.now()}.txt`;
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
@@ -1327,36 +1414,58 @@ END OF REPORT
                     console.log("=== CHALLENGING AI ANALYSIS ===");
                     console.log("Transaction Hash:", txHash);
                     console.log("Original Analysis:", aiAnalysis);
-                    console.log("User initiated challenge for dispute resolution");
-                    console.log("===============================");
-                    
-                    // Get the dispute from localStorage to find the disputeId
-                    const existingDisputes = JSON.parse(localStorage.getItem('resolveAI_disputes') || '[]');
-                    const currentDispute = existingDisputes.find((dispute: any) => 
-                      dispute.txHash === txHash && 
-                      dispute.submitter?.toLowerCase() === walletAddress?.toLowerCase()
+                    console.log(
+                      "User initiated challenge for dispute resolution"
                     );
-                    
-                    if (currentDispute?.disputeId && currentDispute.onBlockchain) {
+                    console.log("===============================");
+
+                    // Get the dispute from localStorage to find the disputeId
+                    const existingDisputes = JSON.parse(
+                      localStorage.getItem("resolveAI_disputes") || "[]"
+                    );
+                    const currentDispute = existingDisputes.find(
+                      (dispute: any) =>
+                        dispute.txHash === txHash &&
+                        dispute.submitter?.toLowerCase() ===
+                          walletAddress?.toLowerCase()
+                    );
+
+                    if (
+                      currentDispute?.disputeId &&
+                      currentDispute.onBlockchain
+                    ) {
                       // Challenge in smart contract
-                      await challengeDisputeInContract(currentDispute.disputeId);
+                      await challengeDisputeInContract(
+                        currentDispute.disputeId
+                      );
                     } else {
                       // Just update local storage if not on blockchain
-                      const updatedDisputes = existingDisputes.map((dispute: any) => {
-                        if (dispute.txHash === txHash && dispute.submitter?.toLowerCase() === walletAddress?.toLowerCase()) {
-                          return { ...dispute, status: "Challenged" };
+                      const updatedDisputes = existingDisputes.map(
+                        (dispute: any) => {
+                          if (
+                            dispute.txHash === txHash &&
+                            dispute.submitter?.toLowerCase() ===
+                              walletAddress?.toLowerCase()
+                          ) {
+                            return { ...dispute, status: "Challenged" };
+                          }
+                          return dispute;
                         }
-                        return dispute;
-                      });
-                      localStorage.setItem('resolveAI_disputes', JSON.stringify(updatedDisputes));
-                      toast.info("Challenge submitted! Your case will be reviewed by human experts.");
+                      );
+                      localStorage.setItem(
+                        "resolveAI_disputes",
+                        JSON.stringify(updatedDisputes)
+                      );
+                      toast.info(
+                        "Challenge submitted! Your case will be reviewed by human experts."
+                      );
                     }
-                    
+
                     setShowAiAnalysis(false);
                   }}
                   disabled={challengingDispute}
                   className={`flex-1 transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 px-6 py-3 rounded-lg ${
-                    challengingDispute 
+                    challengingDispute
                       ? "bg-gray-700 text-gray-500 cursor-not-allowed"
                       : "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white"
                   }`}
@@ -1384,7 +1493,8 @@ END OF REPORT
 
               <div className="mt-4 text-center">
                 <p className="text-xs text-gray-500">
-                  Analysis powered by Groq AI - Keep this information for your records
+                  Analysis powered by Groq AI - Keep this information for your
+                  records
                 </p>
               </div>
             </div>

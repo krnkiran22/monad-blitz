@@ -1,243 +1,200 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import DisputeResolutionABI from "../contracts/DisputeResolutionABI.json";
+import {
+  FaWallet,
+  FaUserCircle,
+  FaGavel,
+  FaRedo,
+  FaSyncAlt,
+  FaTimes,
+  FaRegEye,
+  FaCheckCircle,
+  FaInfoCircle,
+  FaLink,
+  FaCloudDownloadAlt,
+  FaCloud,
+} from "react-icons/fa";
 
-// Replace with your deployed contract address
-const DISPUTE_CONTRACT_ADDRESS = "0xYourDeployedContractAddress";
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
-interface Dispute {
-  id: number;
-  submitter: string;
+interface LocalStorageDispute {
+  id: string;
   txHash: string;
   description: string;
   contractAddress: string;
   recipientAddress: string;
   ipfsHash: string;
   aiAnalysis: string;
-  status: number;
-  jurorDecision: number;
-  juror: string;
-  jurorReasoning: string;
-  submissionTime: number;
-  reviewTime: number;
-  isChallenged: boolean;
+  status: string;
+  submitter: string;
+  timestamp: string;
+  version: string;
+  proofFileNames?: string[];
+  proofFilesCount?: number;
 }
-
-const RefundDecision = {
-  0: "Pending",
-  1: "Full Refund",
-  2: "Partial Refund", 
-  3: "No Refund",
-  4: "Not Possible"
-} as const;
-
-const DisputeStatus = {
-  0: "Submitted",
-  1: "Under Review",
-  2: "Resolved",
-  3: "Challenged"
-} as const;
 
 const JurorPage: React.FC = () => {
   const [walletAddress, setWalletAddress] = useState<string>("");
-  const [contract, setContract] = useState<ethers.Contract | null>(null);
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [localDisputes, setLocalDisputes] = useState<LocalStorageDispute[]>([]);
   const [isAuthorizedJuror, setIsAuthorizedJuror] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
+  const [selectedDispute, setSelectedDispute] =
+    useState<LocalStorageDispute | null>(null);
   const [showReviewModal, setShowReviewModal] = useState<boolean>(false);
-  const [reviewDecision, setReviewDecision] = useState<number>(1);
-  const [reviewReasoning, setReviewReasoning] = useState<string>("");
-  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+  const [showDetailsModal, setShowDetailsModal] = useState<boolean>(false);
+
+  // Dark mode toggle
+  const [darkMode, setDarkMode] = useState<boolean>(() =>
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches
+  );
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+  }, [darkMode]);
 
   // Connect wallet
   const connectWallet = async () => {
-    if (!(window as any).ethereum) {
-      toast.error("MetaMask not found.");
+    if (!window.ethereum) {
+      alert("MetaMask not found.");
       return;
     }
     try {
-      const ethProvider = new ethers.BrowserProvider((window as any).ethereum);
+      const ethProvider = new ethers.BrowserProvider(window.ethereum);
       await ethProvider.send("eth_requestAccounts", []);
       const signer = await ethProvider.getSigner();
       const address = await signer.getAddress();
       setWalletAddress(address);
-      
-      const disputeContract = new ethers.Contract(
-        DISPUTE_CONTRACT_ADDRESS,
-        DisputeResolutionABI,
-        signer
-      );
-      setContract(disputeContract);
-      
-      // Check if user is authorized juror
-      const isJuror = await disputeContract.isAuthorizedJuror(address);
-      setIsAuthorizedJuror(isJuror);
-      
-      toast.success("Wallet connected!");
-      
-      if (isJuror) {
-        toast.success("Welcome, authorized juror!");
-        fetchChallengedDisputes(disputeContract);
-      } else {
-        toast.warn("You are not an authorized juror.");
-      }
+
+      // Set as authorized juror for demo purposes
+      setIsAuthorizedJuror(true);
+
+      // Load local storage disputes
+      loadLocalStorageDisputes();
     } catch (err) {
-      toast.error("Wallet connection failed.");
+      alert("Wallet connection failed.");
       console.error(err);
     }
   };
 
-  // Fetch challenged disputes from contract
-  const fetchChallengedDisputes = async (contractInstance?: ethers.Contract) => {
-    const contractToUse = contractInstance || contract;
-    if (!contractToUse) return;
-    
+  // Load disputes from local storage
+  const loadLocalStorageDisputes = () => {
     setLoading(true);
     try {
-      console.log("=== FETCHING CHALLENGED DISPUTES ===");
-      
-      // Get array of dispute IDs
-      const disputeIds = await contractToUse.getAllChallengedDisputes();
-      console.log("Challenged dispute IDs:", disputeIds);
-      
-      // Fetch full dispute data for each ID
-      const disputes = [];
-      for (let i = 0; i < disputeIds.length; i++) {
-        const disputeId = disputeIds[i];
-        const dispute = await contractToUse.getDispute(disputeId);
-        disputes.push(dispute);
+      const stored = localStorage.getItem("resolveAI_disputes");
+      if (stored) {
+        const disputes = JSON.parse(stored);
+        const disputesArray = Array.isArray(disputes) ? disputes : [disputes];
+        setLocalDisputes(disputesArray);
+      } else {
+        setLocalDisputes([]);
       }
-      
-      console.log("Raw disputes from contract:", disputes);
-      
-      const formattedDisputes = disputes.map((dispute: any) => ({
-        id: Number(dispute.id),
-        submitter: dispute.submitter,
-        txHash: dispute.txHash,
-        description: dispute.description,
-        contractAddress: dispute.contractAddress,
-        recipientAddress: dispute.recipientAddress,
-        ipfsHash: dispute.ipfsHash,
-        aiAnalysis: dispute.aiAnalysis,
-        status: Number(dispute.status),
-        jurorDecision: Number(dispute.jurorDecision),
-        juror: dispute.juror,
-        jurorReasoning: dispute.jurorReasoning,
-        submissionTime: Number(dispute.submissionTime),
-        reviewTime: Number(dispute.reviewTime),
-        isChallenged: dispute.isChallenged
-      }));
-      
-      setDisputes(formattedDisputes);
-      console.log("Formatted disputes:", formattedDisputes);
-      toast.success(`Loaded ${formattedDisputes.length} challenged disputes`);
     } catch (error) {
-      console.error("Error fetching disputes:", error);
-      toast.error("Failed to fetch disputes");
+      console.error("Error loading disputes from local storage:", error);
+      setLocalDisputes([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Submit juror review
-  const submitReview = async () => {
-    if (!contract || !selectedDispute) return;
-    
-    if (!reviewReasoning.trim()) {
-      toast.error("Please provide reasoning for your decision");
-      return;
-    }
-    
-    setSubmittingReview(true);
+  // Update dispute status in local storage
+  const updateDisputeStatus = (disputeId: string, newStatus: string) => {
     try {
-      console.log("=== SUBMITTING JUROR REVIEW ===");
-      console.log("Dispute ID:", selectedDispute.id);
-      console.log("Decision:", reviewDecision);
-      console.log("Reasoning:", reviewReasoning);
-      
-      const tx = await contract.reviewDispute(
-        selectedDispute.id,
-        reviewDecision,
-        reviewReasoning
+      const updatedDisputes = localDisputes.map((dispute) =>
+        dispute.id === disputeId ? { ...dispute, status: newStatus } : dispute
       );
-      
-      toast.info("Transaction submitted. Waiting for confirmation...");
-      await tx.wait();
-      
-      toast.success("Review submitted successfully!");
-      
-      // Reset form
-      setShowReviewModal(false);
-      setSelectedDispute(null);
-      setReviewDecision(1);
-      setReviewReasoning("");
-      
-      // Refresh disputes
-      fetchChallengedDisputes();
-      
+      setLocalDisputes(updatedDisputes);
+      localStorage.setItem(
+        "resolveAI_disputes",
+        JSON.stringify(updatedDisputes)
+      );
     } catch (error) {
-      console.error("Error submitting review:", error);
-      toast.error("Failed to submit review");
-    } finally {
-      setSubmittingReview(false);
+      console.error("Error updating dispute status:", error);
     }
   };
 
   // Format timestamp
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString();
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString();
   };
 
-  // Get status color
-  const getStatusColor = (status: number) => {
-    switch (status) {
-      case 0: return "bg-blue-600";
-      case 1: return "bg-yellow-600";
-      case 2: return "bg-green-600";
-      case 3: return "bg-orange-600";
-      default: return "bg-gray-600";
+  // Get status color based on status string
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "ai analyzed":
+        return "bg-indigo-600 dark:bg-indigo-500";
+      case "deny refund":
+        return "bg-red-500 dark:bg-red-400";
+      case "partial refund":
+        return "bg-amber-500 dark:bg-amber-400";
+      case "full refund":
+        return "bg-emerald-500 dark:bg-emerald-400";
+      case "pending":
+        return "bg-gray-500 dark:bg-gray-400";
+      default:
+        return "bg-slate-500 dark:bg-slate-400";
+    }
+  };
+
+  // Handle review decision with confirmation
+  const handleReviewDecision = (decision: string) => {
+    if (!selectedDispute) return;
+    const isConfirmed = window.confirm(
+      `Are you sure you want to set the status to "${decision}" for Dispute #${selectedDispute.id}? This action cannot be undone.`
+    );
+    if (isConfirmed) {
+      updateDisputeStatus(selectedDispute.id, decision);
+      setShowReviewModal(false);
+      setSelectedDispute(null);
     }
   };
 
   useEffect(() => {
-    if (contract && isAuthorizedJuror) {
-      fetchChallengedDisputes();
+    if (walletAddress && isAuthorizedJuror) {
+      loadLocalStorageDisputes();
     }
-  }, [contract, isAuthorizedJuror]);
+  }, [walletAddress, isAuthorizedJuror]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <ToastContainer theme="dark" />
-      
+    // Use slate-900 or blue-950 for a deep colored but not-black bg
+    <div className="min-h-screen bg-slate-900 dark:bg-slate-900 transition-colors">
       {/* Navigation Bar */}
-      <nav className="bg-gray-800 border-b border-gray-700 px-6 py-4">
+      <nav className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-800 px-6 py-4 transition-colors">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold text-white">
-              ⚖️ Juror Dashboard
+            <FaGavel className="text-2xl text-indigo-600 dark:text-indigo-400" />
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+              Juror Dashboard
             </h1>
           </div>
           <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setDarkMode((val) => !val)}
+              className="rounded-full transition-colors duration-200 text-xs bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 px-3 py-1 mr-2 text-gray-800 dark:text-white"
+              aria-label="Toggle dark mode"
+              title="Toggle dark mode"
+            >
+              {darkMode ? <FaCloud /> : <FaCloudDownloadAlt />}
+            </button>
             {!walletAddress ? (
               <button
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
+                className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-700 text-white px-6 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 shadow-md"
                 onClick={connectWallet}
               >
-                <span>🔗</span>
+                <FaWallet />
                 <span>Connect Wallet</span>
               </button>
             ) : (
               <div className="flex items-center space-x-4">
                 {isAuthorizedJuror && (
-                  <div className="bg-green-600 text-white px-3 py-1 rounded-full text-sm">
-                    ✅ Authorized Juror
+                  <div className="bg-emerald-500 dark:bg-emerald-400 text-white px-3 py-1 rounded-full text-sm shadow-sm flex items-center">
+                    <FaCheckCircle className="mr-1" /> Authorized Juror
                   </div>
                 )}
-                <div className="bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                  <span>👤</span>
+                <div className="bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-100 px-4 py-2 rounded-lg flex items-center space-x-2 border dark:border-slate-600">
+                  <FaUserCircle />
                   <span className="text-sm">
                     {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                   </span>
@@ -250,189 +207,135 @@ const JurorPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto p-6">
         {!walletAddress ? (
-          // Not connected state
           <div className="text-center py-20">
-            <div className="text-8xl mb-8">⚖️</div>
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <FaGavel className="text-8xl mb-8 text-indigo-600 dark:text-indigo-400 mx-auto" />
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
               Juror Dashboard
             </h2>
-            <p className="text-gray-400 text-xl mb-8">
-              Connect your wallet to review challenged disputes
+            <p className="text-gray-600 dark:text-gray-300 text-xl mb-8">
+              Connect your wallet to review disputed transactions
             </p>
             <button
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 mx-auto text-lg font-semibold"
+              className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-700 text-white px-8 py-4 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 mx-auto text-lg font-semibold shadow-lg"
               onClick={connectWallet}
             >
-              <span>🔗</span>
+              <FaWallet />
               <span>Connect Wallet</span>
             </button>
           </div>
         ) : !isAuthorizedJuror ? (
-          // Not authorized state
           <div className="text-center py-20">
-            <div className="text-8xl mb-8">🚫</div>
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <FaTimes className="text-8xl mb-8 text-red-600 dark:text-red-400 mx-auto" />
+            <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4">
               Access Denied
             </h2>
-            <p className="text-gray-400 text-xl mb-4">
+            <p className="text-gray-600 dark:text-gray-300 text-xl mb-4">
               You are not an authorized juror
             </p>
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               Contact the administrator to request juror authorization
             </p>
           </div>
         ) : (
-          // Authorized juror interface
           <div>
-            {/* Header */}
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-3xl font-bold text-white mb-2">
-                    Challenged Disputes
+                  <h2 className="text-3xl font-bold text-gray-200 mb-2">
+                    Dispute Reviews
                   </h2>
-                  <p className="text-gray-400">
+                  <p className="text-gray-300">
                     Review and make decisions on disputed transactions
                   </p>
                 </div>
                 <button
-                  onClick={() => fetchChallengedDisputes()}
+                  onClick={loadLocalStorageDisputes}
                   disabled={loading}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 disabled:opacity-50"
+                  className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2 disabled:opacity-50 shadow-md"
                 >
                   {loading ? (
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    <FaSyncAlt className="animate-spin" />
                   ) : (
-                    <span>🔄</span>
+                    <FaRedo />
                   )}
                   <span>Refresh</span>
                 </button>
               </div>
             </div>
 
-            {/* Disputes List */}
             {loading ? (
               <div className="text-center py-20">
-                <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-                <p className="text-gray-400">Loading disputes...</p>
+                <FaSyncAlt className="animate-spin text-6xl text-indigo-500 dark:text-indigo-300 mx-auto mb-4" />
+                <p className="text-gray-300">Loading disputes...</p>
               </div>
-            ) : disputes.length === 0 ? (
+            ) : localDisputes.length === 0 ? (
               <div className="text-center py-20">
-                <div className="text-8xl mb-8">📭</div>
-                <h3 className="text-2xl font-bold text-white mb-4">
-                  No Challenged Disputes
+                <FaInfoCircle className="text-8xl mb-8 text-gray-400 dark:text-gray-700 mx-auto" />
+                <h3 className="text-2xl font-bold text-gray-200 mb-4">
+                  No Disputes Found
                 </h3>
                 <p className="text-gray-400">
-                  There are currently no disputes that require your review
+                  No disputes available for review
                 </p>
               </div>
             ) : (
-              <div className="grid gap-6">
-                {disputes.map((dispute) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {localDisputes.map((dispute) => (
                   <div
                     key={dispute.id}
-                    className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 shadow-2xl hover:border-gray-600 transition-all duration-200"
+                    className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
-                      <div className="flex-1 space-y-4">
-                        {/* Header */}
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xl font-bold text-white">
-                            Dispute #{dispute.id}
-                          </h3>
-                          <span className={`px-3 py-1 rounded-full text-xs text-white ${getStatusColor(dispute.status)}`}>
-                            {DisputeStatus[dispute.status as keyof typeof DisputeStatus]}
-                          </span>
-                        </div>
-
-                        {/* Transaction Details */}
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-300">Transaction Hash:</label>
-                            <p className="text-white text-sm break-all font-mono bg-gray-700 p-2 rounded">
-                              {dispute.txHash}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-300">Recipient Address:</label>
-                            <p className="text-white text-sm break-all font-mono bg-gray-700 p-2 rounded">
-                              {dispute.recipientAddress}
-                            </p>
-                          </div>
-                          {dispute.contractAddress && (
-                            <div>
-                              <label className="text-sm font-medium text-gray-300">Contract Address:</label>
-                              <p className="text-white text-sm break-all font-mono bg-gray-700 p-2 rounded">
-                                {dispute.contractAddress}
-                              </p>
-                            </div>
-                          )}
-                          <div>
-                            <label className="text-sm font-medium text-gray-300">Submitted By:</label>
-                            <p className="text-white text-sm break-all font-mono bg-gray-700 p-2 rounded">
-                              {dispute.submitter}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <div>
-                          <label className="text-sm font-medium text-gray-300">User's Complaint:</label>
-                          <p className="text-white bg-gray-700 p-3 rounded mt-1">
-                            {dispute.description}
-                          </p>
-                        </div>
-
-                        {/* AI Analysis */}
-                        <div>
-                          <label className="text-sm font-medium text-gray-300">AI Analysis:</label>
-                          <div className="bg-gray-700 p-3 rounded mt-1">
-                            <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                              {dispute.aiAnalysis
-                                .replace(/\*\*/g, '') // Remove ** symbols
-                                .replace(/\*/g, '') // Remove * symbols
-                                .replace(/#{1,6}\s*/g, '') // Remove markdown headers
-                                .trim()
-                              }
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Timestamps */}
-                        <div className="flex space-x-4 text-sm text-gray-400">
-                          <div>
-                            <span className="font-medium">Submitted:</span> {formatTimestamp(dispute.submissionTime)}
-                          </div>
-                          {dispute.reviewTime > 0 && (
-                            <div>
-                              <span className="font-medium">Reviewed:</span> {formatTimestamp(dispute.reviewTime)}
-                            </div>
-                          )}
-                        </div>
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                          #{dispute.id}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs text-white ${getStatusColor(
+                            dispute.status
+                          )}`}
+                        >
+                          {dispute.status}
+                        </span>
                       </div>
-
-                      {/* Action Buttons */}
-                      <div className="lg:ml-6 mt-4 lg:mt-0 flex flex-col space-y-3">
-                        {dispute.ipfsHash && (
-                          <button
-                            onClick={() => window.open(`https://gateway.pinata.cloud/ipfs/${dispute.ipfsHash}`, "_blank")}
-                            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
-                          >
-                            <span>🌐</span>
-                            <span>View IPFS</span>
-                          </button>
-                        )}
-                        
-                        {dispute.status === 3 && ( // Challenged status
+                      <div className="mb-3">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          Transaction Hash
+                        </label>
+                        <p className="text-gray-800 dark:text-gray-200 text-sm break-all font-mono bg-gray-50 dark:bg-slate-900 p-2 rounded mt-1 border dark:border-slate-700">
+                          {dispute.txHash.slice(0, 20)}...
+                          {dispute.txHash.slice(-8)}
+                        </p>
+                      </div>
+                      <div className="mb-3">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          Description
+                        </label>
+                        <p className="text-gray-800 dark:text-gray-200 text-sm bg-gray-50 dark:bg-slate-900 p-2 rounded mt-1 border dark:border-slate-700">
+                          {dispute.description.slice(0, 60)}...
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-auto">
+                        <button
+                          onClick={() => {
+                            setSelectedDispute(dispute);
+                            setShowDetailsModal(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-all duration-200 flex items-center space-x-1 text-sm shadow-sm"
+                        >
+                          <FaRegEye className="mr-1" />
+                          <span>Details</span>
+                        </button>
+                        {dispute.status === "AI Analyzed" && (
                           <button
                             onClick={() => {
                               setSelectedDispute(dispute);
                               setShowReviewModal(true);
                             }}
-                            className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
+                            className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white px-3 py-1 rounded-lg transition-all duration-200 flex items-center space-x-1 text-sm shadow-sm"
                           >
-                            <span>⚖️</span>
-                            <span>Review Dispute</span>
+                            <FaGavel className="mr-1" />
+                            <span>Review</span>
                           </button>
                         )}
                       </div>
@@ -444,87 +347,233 @@ const JurorPage: React.FC = () => {
           </div>
         )}
 
-        {/* Review Modal */}
-        {showReviewModal && selectedDispute && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-gray-800 p-8 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 border border-gray-700">
-              <div className="text-center mb-6">
-                <div className="text-6xl mb-4">⚖️</div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Review Dispute #{selectedDispute.id}
-                </h2>
-                <p className="text-gray-400">
-                  Make your final decision on this dispute
-                </p>
-              </div>
-
-              {/* Decision Selection */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Your Decision:
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { value: 1, label: "Full Refund", color: "from-green-600 to-emerald-600", icon: "💰" },
-                    { value: 2, label: "Partial Refund", color: "from-yellow-600 to-orange-600", icon: "💸" },
-                    { value: 3, label: "No Refund", color: "from-red-600 to-pink-600", icon: "❌" },
-                    { value: 4, label: "Not Possible", color: "from-gray-600 to-slate-600", icon: "🚫" }
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => setReviewDecision(option.value)}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
-                        reviewDecision === option.value
-                          ? `bg-gradient-to-r ${option.color} border-white text-white`
-                          : "bg-gray-700 border-gray-600 text-gray-300 hover:border-gray-500"
-                      }`}
+        {/* Details Modal */}
+        {showDetailsModal && selectedDispute && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 border dark:border-slate-700 max-h-[80vh] flex flex-col transition-colors">
+              {/* Header */}
+              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                      Dispute #{selectedDispute.id} Details
+                    </h2>
+                    <span
+                      className={`inline-block px-2 py-1 rounded-full text-xs text-white ${getStatusColor(
+                        selectedDispute.status
+                      )} mt-2`}
                     >
-                      <span className="text-2xl">{option.icon}</span>
-                      <span className="font-medium">{option.label}</span>
-                    </button>
-                  ))}
+                      {selectedDispute.status}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl"
+                    aria-label="Close"
+                  >
+                    <FaTimes />
+                  </button>
                 </div>
               </div>
 
-              {/* Reasoning */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Reasoning (Required):
-                </label>
-                <textarea
-                  className="w-full bg-gray-700 border border-gray-600 text-white p-4 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none"
-                  placeholder="Explain your decision based on the evidence and transaction details..."
-                  value={reviewReasoning}
-                  onChange={(e) => setReviewReasoning(e.target.value)}
-                  rows={4}
-                  required
-                />
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* Transaction Details */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Transaction Hash
+                    </label>
+                    <p className="text-gray-800 dark:text-gray-200 text-sm break-all font-mono bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700">
+                      {selectedDispute.txHash}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Recipient Address
+                    </label>
+                    <p className="text-gray-800 dark:text-gray-200 text-sm break-all font-mono bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700">
+                      {selectedDispute.recipientAddress}
+                    </p>
+                  </div>
+
+                  {selectedDispute.contractAddress && (
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Contract Address
+                      </label>
+                      <p className="text-gray-800 dark:text-gray-200 text-sm break-all font-mono bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700">
+                        {selectedDispute.contractAddress}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Submitted By
+                    </label>
+                    <p className="text-gray-800 dark:text-gray-200 text-sm break-all font-mono bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700">
+                      {selectedDispute.submitter}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Submission Date
+                    </label>
+                    <p className="text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700">
+                      {formatTimestamp(selectedDispute.timestamp)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    User's Complaint
+                  </label>
+                  <p className="text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700 text-sm mt-1">
+                    {selectedDispute.description}
+                  </p>
+                </div>
+
+                {/* AI Analysis */}
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    AI Analysis
+                  </label>
+                  <div className="bg-gray-50 dark:bg-slate-900 p-3 rounded border dark:border-slate-700 mt-1">
+                    <p className="text-gray-800 dark:text-gray-200 text-sm whitespace-pre-wrap">
+                      {selectedDispute.aiAnalysis
+                        .replace(/\*\*/g, "")
+                        .replace(/\*/g, "")
+                        .replace(/#{1,6}\s*/g, "")
+                        .trim()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Proof Files */}
+                {selectedDispute.proofFileNames &&
+                  selectedDispute.proofFileNames.length > 0 && (
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        Evidence Files
+                      </label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedDispute.proofFileNames.map(
+                          (fileName, index) => (
+                            <span
+                              key={index}
+                              className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded text-sm border dark:border-blue-600 flex items-center"
+                            >
+                              <FaLink className="mr-1" /> {fileName}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex space-x-4">
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center">
+                {selectedDispute.ipfsHash && (
+                  <button
+                    onClick={() =>
+                      window.open(
+                        `https://gateway.pinata.cloud/ipfs/${selectedDispute.ipfsHash}`,
+                        "_blank"
+                      )
+                    }
+                    className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-sm"
+                  >
+                    <FaCloud className="mr-1" />
+                    <span>View IPFS</span>
+                  </button>
+                )}
+
+                {selectedDispute.status === "AI Analyzed" && (
+                  <button
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      setShowReviewModal(true);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 shadow-sm"
+                  >
+                    <FaGavel className="mr-1" />
+                    <span>Review Dispute</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Review Modal */}
+        {showReviewModal && selectedDispute && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-xl max-w-md w-full mx-4 border dark:border-slate-700">
+              <div className="text-center mb-6">
+                <FaGavel className="text-4xl mb-3 text-indigo-600 dark:text-indigo-400 mx-auto" />
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                  Review Dispute #{selectedDispute.id}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                  Choose your decision for this dispute
+                </p>
+              </div>
+
+              {/* Dispute Summary */}
+              <div className="mb-6 bg-gray-50 dark:bg-slate-900 p-3 rounded-lg border dark:border-slate-700">
+                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  Transaction
+                </div>
+                <div className="text-gray-800 dark:text-gray-200 font-mono text-xs break-all">
+                  {selectedDispute.txHash.slice(0, 30)}...
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2 mb-1">
+                  Description
+                </div>
+                <div className="text-gray-800 dark:text-gray-200 text-sm">
+                  {selectedDispute.description}
+                </div>
+              </div>
+
+              {/* -- All decision buttons same color (Indigo) -- */}
+              <div className="grid grid-cols-1 gap-3 mb-4">
+                <button
+                  onClick={() => handleReviewDecision("Deny Refund")}
+                  className="p-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <FaCheckCircle />
+                  <span className="font-medium">Deny Refund</span>
+                </button>
+
+                <button
+                  onClick={() => handleReviewDecision("Partial Refund")}
+                  className="p-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <FaCheckCircle />
+                  <span className="font-medium">Partial Refund</span>
+                </button>
+
+                <button
+                  onClick={() => handleReviewDecision("Full Refund")}
+                  className="p-3 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                >
+                  <FaCheckCircle />
+                  <span className="font-medium">Full Refund</span>
+                </button>
+              </div>
+
+              <div className="flex justify-center">
                 <button
                   onClick={() => setShowReviewModal(false)}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-all duration-200"
+                  className="bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-50 px-6 py-2 rounded-lg transition-all duration-200"
                 >
                   Cancel
-                </button>
-                <button
-                  onClick={submitReview}
-                  disabled={submittingReview || !reviewReasoning.trim()}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submittingReview ? (
-                    <>
-                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>⚖️</span>
-                      <span>Submit Decision</span>
-                    </>
-                  )}
                 </button>
               </div>
             </div>
