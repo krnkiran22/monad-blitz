@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; 
 import { ethers } from "ethers";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -10,12 +10,9 @@ const DISPUTE_CONTRACT_ABI: any[] = [
   // ... ABI here ...
 ];
 
-// Pinata configuration
-const PINATA_API_KEY = "054159cdf22f9af8e68e";
-const PINATA_SECRET_API_KEY =
-  "3e27a4fef7b5ab6c0a3cd15a2036a65deba0f224c70332e1170e3e7fe6ba7ccf";
+
 const PINATA_JWT =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwMWYyMzg4Zi0xMTY3LTQ0OGYtYTJkYi0yNjFjMTY2ZDYwMzUiLCJlbWFpbCI6Imdva2t1bGwwNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMDU0MTU5Y2RmMjJmOWFmOGU2OGUiLCJzY29wZWRLZXlTZWNyZXQiOiIzZTI3YTRmZWY3YjVhYjZjMGEzY2QxNWEyMDM2YTY1ZGViYTBmMjI0YzcwMzMyZTExNzBlM2U3ZmU2YmE3Y2NmIiwiZXhwIjoxNzg1NTU2NTI1fQ.a2PBwGcqua0Mg1YrgfkHU7xmFkAj6EIJBpd1uCcBJEE";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIwMWYyMzg4Zi0xMTY3LTQ0OGYtYTJkYi0yNjFjMTY2ZDYwMzUiLCJlbWFpbCI6Imdva2t1bGwwNEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiMDU0MTU5Y2RmMjJmOWFmOGU2OGUiLCJzY29wZWRLZXlTZWNyZXQiOiIzZTI3YTRmZWY3YjVhYjZjMGEzY2QxNWEyMDM2YTY1ZGViYTBmMjI0YzcwMzMyZTExNzBlM2U3ZmU2YmE3Y2NmIiwiZXhwIjoxNzg1NTU2NTI1fQ.a2PBwGcqua0Mg1YrgfkHU7xmFkAj6EIJBpd1uCcBJEE";
 
 const FORM_STEPS = [
   { id: 1, title: "Transaction Hash", icon: "🔗" },
