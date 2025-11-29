@@ -711,18 +711,18 @@ export default class GameScene extends Phaser.Scene {
             if (this.web3GameId !== null) {
                 this.potContainer = this.add.container(640, 30).setScrollFactor(0).setDepth(100);
                 
-                const potBg = this.add.rectangle(0, 0, 300, 50, 0xFFD700, 0.9)
+                const potBg = this.add.rectangle(0, 0, 320, 55, 0xFFD700, 0.9)
                     .setStrokeStyle(3, 0xFF8800);
                 
-                const potLabel = this.add.text(0, -8, '💰 PRIZE POT', {
-                    fontSize: '16px',
+                const potLabel = this.add.text(0, -10, '💰 PRIZE POT 💰', {
+                    fontSize: '15px',
                     fill: '#000',
                     fontStyle: 'bold',
                     fontFamily: 'Arial'
                 }).setOrigin(0.5);
                 
-                this.potValueText = this.add.text(0, 12, `${this.totalPot} MONAD`, {
-                    fontSize: '20px',
+                this.potValueText = this.add.text(0, 10, `${this.totalPot} MONAD (Native)`, {
+                    fontSize: '18px',
                     fill: '#000',
                     fontStyle: 'bold',
                     fontFamily: 'Arial'

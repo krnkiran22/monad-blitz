@@ -73,7 +73,7 @@ class Web3Manager {
     }
 
     /**
-     * Get user's wallet balance
+     * Get user's wallet balance in MONAD
      */
     async getBalance() {
         try {
@@ -90,6 +90,47 @@ class Web3Manager {
     }
 
     /**
+     * Check if user has enough balance (0.1 MONAD + gas)
+     */
+    async hasEnoughBalance() {
+        try {
+            const balance = await this.getBalance();
+            const balanceNum = parseFloat(balance);
+            console.log('Current balance:', balanceNum, 'MONAD');
+            // Need 0.1 MONAD + small buffer for gas (0.005-0.01 typical)
+            // Lowered threshold to 0.105 MONAD to be less strict
+            const hasEnough = balanceNum >= 0.105;
+            console.log('Has enough balance?', hasEnough, '(need >= 0.105 MONAD)');
+            return hasEnough;
+        } catch (error) {
+            console.error('Error checking balance:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Estimate gas for creating game
+     */
+    async estimateCreateGameGas() {
+        try {
+            if (!this.contract) return '0.01';
+            
+            const betAmountWei = ethers.parseEther(BET_AMOUNT);
+            const gasEstimate = await this.contract.createGame.estimateGas(betAmountWei, {
+                value: betAmountWei
+            });
+            
+            const feeData = await this.provider.getFeeData();
+            const gasCost = gasEstimate * (feeData.gasPrice || feeData.maxFeePerGas);
+            
+            return ethers.formatEther(gasCost);
+        } catch (error) {
+            console.error('Error estimating gas:', error);
+            return '0.01'; // Default estimate
+        }
+    }
+
+    /**
      * Create a new game with 0.1 MONAD bet
      */
     async createGame() {
@@ -98,9 +139,18 @@ class Web3Manager {
                 throw new Error('Contract not initialized. Please connect wallet first.');
             }
 
+            // Check balance with detailed logging
+            const balance = await this.getBalance();
+            const balanceNum = parseFloat(balance);
+            console.log('Creating game - Current balance:', balanceNum, 'MONAD');
+            
+            if (balanceNum < 0.105) {
+                throw new Error(`Insufficient MONAD balance. You have ${balanceNum.toFixed(4)} MONAD but need at least 0.105 MONAD (0.1 for bet + gas)`);
+            }
+
             const betAmountWei = ethers.parseEther(BET_AMOUNT);
 
-            console.log('Creating game with bet amount:', BET_AMOUNT, 'MONAD');
+            console.log('Creating game with bet amount:', BET_AMOUNT, 'MONAD (native token)');
 
             // Call createGame function
             const tx = await this.contract.createGame(betAmountWei, {
@@ -155,11 +205,20 @@ class Web3Manager {
                 throw new Error('Contract not initialized. Please connect wallet first.');
             }
 
+            // Check balance with detailed logging
+            const balance = await this.getBalance();
+            const balanceNum = parseFloat(balance);
+            console.log('Joining game - Current balance:', balanceNum, 'MONAD');
+            
+            if (balanceNum < 0.105) {
+                throw new Error(`Insufficient MONAD balance. You have ${balanceNum.toFixed(4)} MONAD but need at least 0.105 MONAD (0.1 for bet + gas)`);
+            }
+
             // Get game details first
             const gameDetails = await this.contract.getGame(gameId);
             const betAmountWei = gameDetails.betAmount;
 
-            console.log('Joining game', gameId, 'with bet amount:', ethers.formatEther(betAmountWei), 'MONAD');
+            console.log('Joining game', gameId, 'with bet amount:', ethers.formatEther(betAmountWei), 'MONAD (native token)');
 
             // Call joinGame function
             const tx = await this.contract.joinGame(gameId, {

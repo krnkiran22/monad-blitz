@@ -317,20 +317,29 @@ export default class GameOverScene extends Phaser.Scene {
                 const prizeY = H * 0.88;
                 
                 // Prize box background
-                const prizeBg = this.add.rectangle(W * 0.79, prizeY, 280, 70, 0x2196F3, 0.95);
+                const prizeBg = this.add.rectangle(W * 0.79, prizeY, 320, 75, 0x2196F3, 0.95);
                 prizeBg.setStrokeStyle(4, 0x1976D2);
                 
                 const prizeIcon = this.winner === 'you' ? '💰' : '😢';
                 const prizeText = this.winner === 'you' 
-                    ? `${prizeIcon} You Won ${this.totalPot} MONAD!`
+                    ? `${prizeIcon} You Won ${this.totalPot} MONAD! ${prizeIcon}`
                     : `${prizeIcon} Opponent Won ${this.totalPot} MONAD`;
                 
-                this.add.text(W * 0.79, prizeY, prizeText, {
-                    fontSize: '22px',
+                this.add.text(W * 0.79, prizeY - 8, prizeText, {
+                    fontSize: '21px',
                     fill: '#FFFFFF',
                     stroke: '#000',
                     strokeThickness: 4,
                     fontStyle: 'bold',
+                    fontFamily: 'Arial'
+                }).setOrigin(0.5);
+
+                // Subtitle explaining it's native token
+                this.add.text(W * 0.79, prizeY + 12, '(Monad Native Token)', {
+                    fontSize: '14px',
+                    fill: '#CCCCCC',
+                    stroke: '#000',
+                    strokeThickness: 3,
                     fontFamily: 'Arial'
                 }).setOrigin(0.5);
             }

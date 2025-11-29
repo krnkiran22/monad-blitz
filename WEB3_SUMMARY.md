@@ -3,6 +3,7 @@
 ## ✅ What's Been Added
 
 ### Smart Contract Integration
+
 - **Contract Address**: `0x8469f356D3C1225e45D08bb7d58a51fD6d9EC12D`
 - **Transaction Hash**: `0xadc0f45053bf84c78c5c3c421d578fc3bd159357a0592a92ac6d864fb4733272`
 - **Network**: Monad Testnet
@@ -12,7 +13,9 @@
 ### Files Created/Modified
 
 #### New Files:
+
 1. **`src/utils/Web3Manager.js`** - Complete blockchain integration
+
    - Wallet connection (MetaMask)
    - Game creation with 0.1 MONAD deposit
    - Join game with 0.1 MONAD deposit
@@ -20,16 +23,19 @@
    - Game status queries
 
 2. **`winner-bot.js`** - Automated winner declaration bot
+
    - Listens to game results
    - Automatically calls `declareWinner()` on blockchain
    - Requires contract owner private key
 
 3. **`.env.example`** - Environment configuration template
+
    - Monad RPC URL
    - Owner private key
    - Contract address
 
 4. **`WEB3_INTEGRATION_GUIDE.md`** - Complete technical documentation
+
    - Architecture overview
    - API references
    - Troubleshooting guide
@@ -40,7 +46,9 @@
    - Production deployment options
 
 #### Modified Files:
+
 1. **`src/scenes/RoomScene.js`**
+
    - Added "Connect Wallet" button
    - Wallet status display
    - "Create Game (0.1 MONAD)" button
@@ -48,11 +56,13 @@
    - Bet information display
 
 2. **`src/scenes/GameScene.js`**
+
    - Prize pot display (💰 0.2 MONAD) at top center
    - Web3 game ID tracking
    - Passes bet data to GameOverScene
 
 3. **`src/scenes/GameOverScene.js`**
+
    - Prize notification for winners
    - "💰 You Won 0.2 MONAD!" or "😢 Opponent Won 0.2 MONAD"
    - Blue prize box display
@@ -65,6 +75,7 @@
 ## 🚀 How to Use
 
 ### Quick Start
+
 ```bash
 # Install dependencies
 npm install
@@ -79,6 +90,7 @@ npm run start:full
 ### Player Flow
 
 #### Player 1 (Host):
+
 1. Main Menu → MULTIPLAYER
 2. CONNECT WALLET → Approve MetaMask
 3. CREATE GAME (0.1 MONAD) → Confirm transaction
@@ -87,7 +99,8 @@ npm run start:full
 6. Play and collect leaves!
 
 #### Player 2 (Guest):
-1. Main Menu → MULTIPLAYER  
+
+1. Main Menu → MULTIPLAYER
 2. CONNECT WALLET → Approve MetaMask
 3. JOIN GAME → Enter: `ROOMID,GAMEID` (e.g., "ABC123,0")
 4. Confirm transaction (deposits 0.1 MONAD)
@@ -95,12 +108,13 @@ npm run start:full
 6. Play and collect leaves!
 
 ### After Game:
+
 - Winner determined by leaf count
 - Results screen shows winner
 - Prize notification displays
-- Winner receives 0.2 MONAD automatically*
+- Winner receives 0.2 MONAD automatically\*
 
-*Requires contract owner signature (see deployment options)
+\*Requires contract owner signature (see deployment options)
 
 ## 📋 Scripts Available
 
@@ -116,6 +130,7 @@ npm run build        # Build for production
 ## 🔐 Environment Setup (For Winner Bot)
 
 Create `.env` file:
+
 ```env
 MONAD_RPC_URL=https://testnet-rpc.monad.xyz
 OWNER_PRIVATE_KEY=your_private_key_here
@@ -170,20 +185,24 @@ Create Game (0.1Ⓜ)     Join Game (0.1Ⓜ)
 ✅ Automatic winner determination  
 ✅ Winner receives 0.2 MONAD  
 ✅ Manual or automated prize distribution  
-✅ Error handling & transaction validation  
+✅ Error handling & transaction validation
 
 ## 🐛 Common Issues
 
 ### "MetaMask not installed"
+
 → Install MetaMask browser extension
 
 ### "Insufficient funds"
+
 → Get test MONAD from faucet
 
 ### "Transaction failed"
+
 → Check gas settings in MetaMask
 
 ### "Room not found"
+
 → Verify Room ID and Game ID are correct
 
 ## 📞 Support

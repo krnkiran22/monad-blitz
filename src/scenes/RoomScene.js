@@ -49,14 +49,23 @@ export default class RoomScene extends Phaser.Scene {
         }).setOrigin(0.5);
         
         // Bet info
-        this.betInfoText = this.add.text(W / 2, 320, 'Bet: 0.1 MONAD per player | Winner takes 0.2 MONAD!', {
-            fontSize: '24px',
+        this.betInfoText = this.add.text(W / 2, 320, 'Need: ~0.105 MONAD (0.1 bet + gas) | Winner: 0.2 MONAD!', {
+            fontSize: '21px',
             fill: '#FFD700',
             stroke: '#000',
             strokeThickness: 4,
             fontStyle: 'bold',
             fontFamily: 'Arial'
         }).setOrigin(0.5);
+
+        // Balance display (hidden initially)
+        this.balanceText = this.add.text(W / 2, 355, '', {
+            fontSize: '18px',
+            fill: '#fff',
+            stroke: '#000',
+            strokeThickness: 3,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setVisible(false);
 
         // Room ID display (hidden initially)
         this.roomIdText = this.add.text(W / 2, 370, '', {
@@ -86,14 +95,14 @@ export default class RoomScene extends Phaser.Scene {
             fontFamily: 'Arial'
         }).setOrigin(0.5).setVisible(false);
         
-        // Create Game Button (0.1 MONAD)
-        this.createButton = this.createStyledButton(W / 2 - 220, 540, 'CREATE GAME\n(0.1 MONAD)', () => {
+        // Create Game Button (0.1 MONAD + gas)
+        this.createButton = this.createStyledButton(W / 2 - 220, 540, 'CREATE GAME\n(0.1 MONAD + gas)', () => {
             this.createGame();
         }, 0x4CAF50, 0x2E7D32);
         this.createButton.setVisible(false); // Hidden until wallet connected
         
         // Join Game Button
-        this.joinButton = this.createStyledButton(W / 2 + 220, 540, 'JOIN GAME', () => {
+        this.joinButton = this.createStyledButton(W / 2 + 220, 540, 'JOIN GAME\n(0.1 MONAD + gas)', () => {
             this.showJoinInput();
         }, 0xFF9800, 0xF57C00);
         this.joinButton.setVisible(false); // Hidden until wallet connected
@@ -194,11 +203,27 @@ export default class RoomScene extends Phaser.Scene {
             this.walletStatusText.setColor('#aaffaa');
             this.connectWalletButton.setVisible(false);
             
+            // Get and display balance
+            const balance = await Web3Manager.getBalance();
+            const balanceNum = parseFloat(balance);
+            console.log('Wallet connected - Balance:', balanceNum, 'MONAD');
+            
+            const balanceColor = balanceNum >= 0.105 ? '#00ff00' : '#ff0000';
+            this.balanceText.setText(`Balance: ${balanceNum.toFixed(4)} MONAD (Native Token)`);
+            this.balanceText.setColor(balanceColor);
+            this.balanceText.setVisible(true);
+            
             // Show game buttons
             this.createButton.setVisible(true);
             this.joinButton.setVisible(true);
             
-            this.statusText.setText('Wallet connected! Choose an option:');
+            if (balanceNum < 0.105) {
+                this.statusText.setText(`⚠️ Need at least 0.105 MONAD (you have ${balanceNum.toFixed(4)})`);
+                this.statusText.setColor('#ff8800');
+            } else {
+                this.statusText.setText('✅ Wallet connected! Choose an option:');
+                this.statusText.setColor('#ffffff');
+            }
         } else {
             this.statusText.setText(`Failed: ${result.error}`);
             this.statusText.setColor('#ff0000');
