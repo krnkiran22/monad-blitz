@@ -120,16 +120,17 @@ export default class GameOverScene extends Phaser.Scene {
         this.add.image(W * 0.133, H * 0.097, 'ending_paint_back').setOrigin(0, 0);
         
         // Death painting based on killer
-        const paintings = [
-            { key: 'ending_paint_koalafire', x: W * 0.145, y: H * 0.171 },      // 0=fire
-            { key: 'ending_paint_koalasnake', x: W * 0.145, y: H * 0.171 },     // 1=snake
-            { key: 'ending_paint_koaladingo', x: W * 0.145, y: H * 0.171 },     // 2=dingo
-            { key: 'ending_paint_koalaowl', x: W * 0.2, y: H * 0.3 },           // 3=owl
-            { key: 'ending_paint_koalageneric', x: W * 0.133, y: H * 0.171 },   // 4=natural
-            { key: 'ending_paint_koalabee', x: W * 0.145, y: H * 0.171 },       // 5=bee
-            { key: 'ending_paint_koalaeagle', x: W * 0.145, y: H * 0.171 }      // 6=eagle
-        ];
-        const painting = paintings[this.killer] || paintings[4];
+        const paintings = {
+            'fire': { key: 'ending_paint_koalafire', x: W * 0.145, y: H * 0.171 },
+            'snake': { key: 'ending_paint_koalasnake', x: W * 0.145, y: H * 0.171 },
+            'dingo': { key: 'ending_paint_koaladingo', x: W * 0.145, y: H * 0.171 },
+            'owl': { key: 'ending_paint_koalaowl', x: W * 0.2, y: H * 0.3 },
+            'natural': { key: 'ending_paint_koalageneric', x: W * 0.133, y: H * 0.171 },
+            'bee': { key: 'ending_paint_koalabee', x: W * 0.145, y: H * 0.171 },
+            'eagle': { key: 'ending_paint_koalaeagle', x: W * 0.145, y: H * 0.171 },
+            'offscreen': { key: 'ending_paint_koalageneric', x: W * 0.133, y: H * 0.171 }
+        };
+        const painting = paintings[this.killer] || paintings['natural'];
         this.add.image(painting.x, painting.y, painting.key).setOrigin(0, 0);
         
         this.add.image(W * 0.102, H * 0.035, 'ending_paint_frame').setOrigin(0, 0);
@@ -185,17 +186,18 @@ export default class GameOverScene extends Phaser.Scene {
         });
         
         // Death messages
-        const messages = [
-            ['Kissed by fire'],                                  // 0=fire
-            ['Digested alive by a', 'big snake'],                // 1=snake
-            ['A dingo took your life'],                          // 2=dingo
-            ['Turned into a pretty', 'owl pellet'],              // 3=owl
-            ['LIFE KILLED YOU'],                                 // 4=natural
-            ['You turn out to be', 'allergic to bee sting'],     // 5=bee
-            ['KOALA IS DEAD :(']                                 // 6=eagle
-        ];
+        const messages = {
+            'fire': ['Kissed by fire'],
+            'snake': ['Digested alive by a', 'big snake'],
+            'dingo': ['A dingo took your life'],
+            'owl': ['Turned into a pretty', 'owl pellet'],
+            'natural': ['LIFE KILLED YOU'],
+            'bee': ['You turn out to be', 'allergic to bee sting'],
+            'eagle': ['KOALA IS DEAD :('],
+            'offscreen': ['Fell off the edge', 'of the world']
+        };
         
-        const msg = messages[this.killer] || messages[4];
+        const msg = messages[this.killer] || messages['natural'];
         this.add.text(W * 0.13, H * 0.78, msg[0], {
             fontSize: '24px', fill: '#fff', fontFamily: 'Arial'
         });

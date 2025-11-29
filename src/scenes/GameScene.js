@@ -1119,6 +1119,14 @@ export default class GameScene extends Phaser.Scene {
         this.koalaSprite.x = this.playerBounds.x - this.playerBounds.width;
         this.koalaSprite.y = this.playerBounds.y - 25;
         
+        // Check if koala went off the left side of screen (C code lines 1283-1287)
+        // if (playerBounds.x <= (-playerBounds.width))
+        if (this.playerBounds.x <= -this.playerBounds.width) {
+            this.killer = 'offscreen';
+            this.gameOver();
+            return;
+        }
+        
         for (let i = 0; i < this.MAX_LEAVES; i++) {
             if (this.leafActive[i]) {
                 if (this.checkCollision(this.playerBounds, this.leafData[i])) {
