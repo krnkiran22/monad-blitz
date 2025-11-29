@@ -1,21 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Primary Meta Tags -->
-    <title>Monad Blitz - Decentralized Dispute Resolution Platform</title>
-    <meta name="title" content="Monad Blitz - Decentralized Dispute Resolution Platform" />
-    <meta name="description" content="Resolve blockchain transaction disputes using AI-powered analysis and decentralized jury system. Store evidence on IPFS, get AI recommendations, and challenge decisions with human jurors on Monad Testnet." />
-    <meta name="keywords" content="blockchain, dispute resolution, Monad, IPFS, AI analysis, decentralized, smart contracts, crypto disputes, juror system" />
-    <meta name="author" content="Monad Blitz Team" />
-    <meta property="og:description" content="Resolve blockchain transaction disputes using AI-powered analysis and decentralized jury system. Store evidence on IPFS, get AI recommendations, and challenge decisions with human jurors on Monad Testnet." />
-    <meta property="og:image" content="/og-image.png" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Koala Seasons</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #game-container {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 16px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #instructions p {
+            margin: 5px 0;
+        }
+        
+        .key {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="instructions">
+        <p><span class="key">SPACE</span> - Jump to next tree | <span class="key">↓</span> - Dash down</p>
+        <p>Collect leaves 🍃 • Avoid enemies 🦴 • Survive the seasons! ❄️</p>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+</body>
 </html>
