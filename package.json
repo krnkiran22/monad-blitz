@@ -8,10 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server.js",
-    "start:all": "concurrently \"npm run server\" \"npm run dev\""
+    "winner-bot": "node winner-bot.js",
+    "start:all": "concurrently \"npm run server\" \"npm run dev\"",
+    "start:full": "concurrently \"npm run server\" \"npm run winner-bot\" \"npm run dev\""
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
     "express": "^5.1.0",
     "phaser": "^3.70.0",
     "socket.io": "^4.8.1",

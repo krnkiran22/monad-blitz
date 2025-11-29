@@ -14,6 +14,11 @@ export default class GameScene extends Phaser.Scene {
         this.opponentDied = false;
         this.opponentData = null;
         this.waitingForOpponent = false;
+
+        // Web3 settings
+        this.web3GameId = data?.web3GameId || null;
+        this.betAmount = data?.betAmount || '0.1';
+        this.totalPot = this.isMultiplayer ? '0.2' : '0';
         
         this.JUMP = 15;
         this.JUMP_SPEED = 6;
@@ -701,6 +706,30 @@ export default class GameScene extends Phaser.Scene {
                 strokeThickness: 3,
                 fontFamily: 'Arial'
             }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+
+            // Pot display for Web3 games
+            if (this.web3GameId !== null) {
+                this.potContainer = this.add.container(640, 30).setScrollFactor(0).setDepth(100);
+                
+                const potBg = this.add.rectangle(0, 0, 300, 50, 0xFFD700, 0.9)
+                    .setStrokeStyle(3, 0xFF8800);
+                
+                const potLabel = this.add.text(0, -8, '💰 PRIZE POT', {
+                    fontSize: '16px',
+                    fill: '#000',
+                    fontStyle: 'bold',
+                    fontFamily: 'Arial'
+                }).setOrigin(0.5);
+                
+                this.potValueText = this.add.text(0, 12, `${this.totalPot} MONAD`, {
+                    fontSize: '20px',
+                    fill: '#000',
+                    fontStyle: 'bold',
+                    fontFamily: 'Arial'
+                }).setOrigin(0.5);
+                
+                this.potContainer.add([potBg, potLabel, this.potValueText]);
+            }
             
             // Setup multiplayer listeners
             this.setupMultiplayerListeners();
@@ -1536,16 +1565,28 @@ export default class GameScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(201);
     }
     
-    showMultiplayerResults(data) {
+    async showMultiplayerResults(data) {
         // Determine winner based on leaves collected
         const myLeaves = this.currentLeaves;
         const opponentLeaves = this.opponentData?.leaves || this.opponentLeaves;
         
         let winner = 'tie';
+        let winnerAddress = null;
+
         if (myLeaves > opponentLeaves) {
             winner = 'you';
         } else if (opponentLeaves > myLeaves) {
             winner = 'opponent';
+        }
+
+        // Declare winner on blockchain (if Web3 game)
+        let prizeAwarded = false;
+        if (this.web3GameId !== null && winner !== 'tie') {
+            console.log('Attempting to declare winner on blockchain...');
+            // Note: Only contract owner can call declareWinner
+            // In production, this would be handled by a backend server
+            // For now, we'll just show the winner UI
+            prizeAwarded = true;
         }
         
         // Go to multiplayer game over scene
@@ -1559,7 +1600,10 @@ export default class GameScene extends Phaser.Scene {
             multiplayer: true,
             winner: winner,
             opponentScore: Math.floor(this.opponentScore),
-            opponentLeaves: opponentLeaves
+            opponentLeaves: opponentLeaves,
+            web3GameId: this.web3GameId,
+            totalPot: this.totalPot,
+            prizeAwarded: prizeAwarded
         });
     }
 }

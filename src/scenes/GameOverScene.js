@@ -19,6 +19,11 @@ export default class GameOverScene extends Phaser.Scene {
         this.winner = data.winner || 'tie'; // 'you', 'opponent', 'tie'
         this.opponentScore = data.opponentScore || 0;
         this.opponentLeaves = data.opponentLeaves || 0;
+
+        // Web3 data
+        this.web3GameId = data.web3GameId || null;
+        this.totalPot = data.totalPot || '0';
+        this.prizeAwarded = data.prizeAwarded || false;
     }
 
     create() {
@@ -300,6 +305,29 @@ export default class GameOverScene extends Phaser.Scene {
                 this.add.text(W * 0.79, H * 0.80, `Difference: ${diff} leaves`, {
                     fontSize: '24px',
                     fill: '#FFD700',
+                    stroke: '#000',
+                    strokeThickness: 4,
+                    fontStyle: 'bold',
+                    fontFamily: 'Arial'
+                }).setOrigin(0.5);
+            }
+
+            // Web3 Prize Display
+            if (this.web3GameId !== null && this.winner !== 'tie') {
+                const prizeY = H * 0.88;
+                
+                // Prize box background
+                const prizeBg = this.add.rectangle(W * 0.79, prizeY, 280, 70, 0x2196F3, 0.95);
+                prizeBg.setStrokeStyle(4, 0x1976D2);
+                
+                const prizeIcon = this.winner === 'you' ? '💰' : '😢';
+                const prizeText = this.winner === 'you' 
+                    ? `${prizeIcon} You Won ${this.totalPot} MONAD!`
+                    : `${prizeIcon} Opponent Won ${this.totalPot} MONAD`;
+                
+                this.add.text(W * 0.79, prizeY, prizeText, {
+                    fontSize: '22px',
+                    fill: '#FFFFFF',
                     stroke: '#000',
                     strokeThickness: 4,
                     fontStyle: 'bold',
