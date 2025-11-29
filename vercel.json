@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd monad-blitz2-bangalore && npm run build",
+  "outputDirectory": "monad-blitz2-bangalore/dist",
+  "installCommand": "cd monad-blitz2-bangalore && npm install"
+}
