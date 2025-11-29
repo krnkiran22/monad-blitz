@@ -13,6 +13,12 @@ export default class GameOverScene extends Phaser.Scene {
         this.initSeason = data.initSeason || 0;
         this.currentSeason = data.currentSeason || 0;
         this.initYear = data.initYear || 2025;
+        
+        // Multiplayer data
+        this.isMultiplayer = data.multiplayer || false;
+        this.winner = data.winner || 'tie'; // 'you', 'opponent', 'tie'
+        this.opponentScore = data.opponentScore || 0;
+        this.opponentLeaves = data.opponentLeaves || 0;
     }
 
     create() {
@@ -205,6 +211,101 @@ export default class GameOverScene extends Phaser.Scene {
             this.add.text(W * 0.13, H * 0.83, msg[1], {
                 fontSize: '24px', fill: '#fff', fontFamily: 'Arial'
             });
+        }
+        
+        // Multiplayer result display
+        if (this.isMultiplayer) {
+            // Winner banner at top with proper styling
+            let winnerText = '';
+            let winnerColor = '#FFD700';
+            let bannerBg = 0xFFD700;
+            
+            if (this.winner === 'you') {
+                winnerText = '🏆 YOU WON! 🏆';
+                winnerColor = '#FFFFFF';
+                bannerBg = 0x4CAF50;
+            } else if (this.winner === 'opponent') {
+                winnerText = '😢 YOU LOST 😢';
+                winnerColor = '#FFFFFF';
+                bannerBg = 0xF44336;
+            } else {
+                winnerText = "🤝 IT'S A TIE! 🤝";
+                winnerColor = '#4a3728';
+                bannerBg = 0xFFD700;
+            }
+            
+            // Banner background plank
+            const bannerPlank = this.add.image(W * 0.585, H * 0.07, 'ending_score_planklarge');
+            bannerPlank.setOrigin(0, 0);
+            bannerPlank.setTint(bannerBg);
+            
+            this.add.text(W * 0.845, H * 0.095, winnerText, {
+                fontSize: '42px',
+                fill: winnerColor,
+                stroke: '#000',
+                strokeThickness: 8,
+                fontStyle: 'bold',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+            
+            // Multiplayer results panel with wooden plank background
+            const resultsPlank = this.add.image(W * 0.53, H * 0.52, 'ending_score_planklarge');
+            resultsPlank.setOrigin(0, 0);
+            resultsPlank.setScale(1.0, 1.8);
+            
+            this.add.text(W * 0.79, H * 0.53, 'MULTIPLAYER RESULTS', {
+                fontSize: '26px',
+                fill: '#FFD700',
+                stroke: '#000',
+                strokeThickness: 5,
+                fontStyle: 'bold',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+            
+            // Your score with icon
+            const yourLeafIcon = this.add.image(W * 0.65, H * 0.60, 'ending_score_leavesicon');
+            yourLeafIcon.setScale(0.25);
+            
+            this.add.text(W * 0.73, H * 0.60, `Your Leaves: ${this.leavesCollected}`, {
+                fontSize: '28px',
+                fill: '#8BB300',
+                stroke: '#000',
+                strokeThickness: 5,
+                fontStyle: 'bold',
+                fontFamily: 'Arial'
+            }).setOrigin(0, 0.5);
+            
+            // Opponent score with icon
+            const oppLeafIcon = this.add.image(W * 0.65, H * 0.68, 'ending_score_leavesicon');
+            oppLeafIcon.setScale(0.25);
+            oppLeafIcon.setTint(0xFF6B6B);
+            
+            this.add.text(W * 0.73, H * 0.68, `Opponent Leaves: ${this.opponentLeaves}`, {
+                fontSize: '28px',
+                fill: '#FF6B6B',
+                stroke: '#000',
+                strokeThickness: 5,
+                fontStyle: 'bold',
+                fontFamily: 'Arial'
+            }).setOrigin(0, 0.5);
+            
+            // Difference with visual separator
+            const diff = Math.abs(this.leavesCollected - this.opponentLeaves);
+            if (diff > 0) {
+                // Separator line
+                const separator = this.add.graphics();
+                separator.lineStyle(3, 0x4a3728, 1);
+                separator.lineBetween(W * 0.66, H * 0.74, W * 0.92, H * 0.74);
+                
+                this.add.text(W * 0.79, H * 0.80, `Difference: ${diff} leaves`, {
+                    fontSize: '24px',
+                    fill: '#FFD700',
+                    stroke: '#000',
+                    strokeThickness: 4,
+                    fontStyle: 'bold',
+                    fontFamily: 'Arial'
+                }).setOrigin(0.5);
+            }
         }
     }
 

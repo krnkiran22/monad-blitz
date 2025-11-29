@@ -22,18 +22,59 @@ export default class MenuScene extends Phaser.Scene {
         const titleLogo = this.add.image(640, 250, 'title_logo');
         titleLogo.setScale(1.2);
         
-        const playButton = this.add.text(640, 500, 'PRESS SPACE TO START', {
+        // Single Player Button
+        const singlePlayerButton = this.add.text(640, 420, 'SINGLE PLAYER', {
             fontSize: '42px',
             fill: '#ffffff',
             stroke: '#000000',
             strokeThickness: 8,
             fontStyle: 'bold'
         });
-        playButton.setOrigin(0.5);
+        singlePlayerButton.setOrigin(0.5);
+        singlePlayerButton.setInteractive();
+        
+        singlePlayerButton.on('pointerover', () => {
+            singlePlayerButton.setFill('#FFD700');
+            this.game.canvas.style.cursor = 'pointer';
+        });
+        
+        singlePlayerButton.on('pointerout', () => {
+            singlePlayerButton.setFill('#ffffff');
+            this.game.canvas.style.cursor = 'default';
+        });
+        
+        singlePlayerButton.on('pointerdown', () => {
+            this.scene.start('GameScene', { multiplayer: false });
+        });
+        
+        // Multiplayer Button
+        const multiplayerButton = this.add.text(640, 500, 'MULTIPLAYER', {
+            fontSize: '42px',
+            fill: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 8,
+            fontStyle: 'bold'
+        });
+        multiplayerButton.setOrigin(0.5);
+        multiplayerButton.setInteractive();
+        
+        multiplayerButton.on('pointerover', () => {
+            multiplayerButton.setFill('#00FF00');
+            this.game.canvas.style.cursor = 'pointer';
+        });
+        
+        multiplayerButton.on('pointerout', () => {
+            multiplayerButton.setFill('#ffffff');
+            this.game.canvas.style.cursor = 'default';
+        });
+        
+        multiplayerButton.on('pointerdown', () => {
+            this.scene.start('RoomScene');
+        });
         
         this.tweens.add({
-            targets: playButton,
-            alpha: 0.3,
+            targets: [singlePlayerButton, multiplayerButton],
+            alpha: 0.7,
             duration: 800,
             yoyo: true,
             repeat: -1
@@ -85,7 +126,7 @@ export default class MenuScene extends Phaser.Scene {
 
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
-            this.scene.start('GameScene');
+            this.scene.start('GameScene', { multiplayer: false });
         }
     }
 }

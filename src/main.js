@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import GameScene from './scenes/GameScene';
 import MenuScene from './scenes/MenuScene';
 import GameOverScene from './scenes/GameOverScene';
+import RoomScene from './scenes/RoomScene';
 
 const config = {
     type: Phaser.AUTO,
@@ -22,7 +23,10 @@ const config = {
             debug: false
         }
     },
-    scene: [MenuScene, GameScene, GameOverScene]
+    scene: [MenuScene, RoomScene, GameScene, GameOverScene],
+    // Don't pause game when browser tab loses focus
+    // This prevents players from cheating by switching tabs
+    pauseOnBlur: false
 };
 
 const game = new Phaser.Game(config);

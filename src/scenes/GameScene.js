@@ -1,9 +1,20 @@
+import MultiplayerService from '../services/MultiplayerService.js';
+
 export default class GameScene extends Phaser.Scene {
     constructor() {
         super('GameScene');
     }
 
-    init() {
+    init(data) {
+        // Multiplayer settings
+        this.isMultiplayer = data?.multiplayer || false;
+        this.isHost = data?.isHost || false;
+        this.opponentScore = 0;
+        this.opponentLeaves = 0;
+        this.opponentDied = false;
+        this.opponentData = null;
+        this.waitingForOpponent = false;
+        
         this.JUMP = 15;
         this.JUMP_SPEED = 6;
         this.GRAVITY = 0.5;
@@ -66,6 +77,9 @@ export default class GameScene extends Phaser.Scene {
     create() {
         // Set camera bounds to allow rendering above screen (for branches)
         this.cameras.main.setBounds(0, -200, 1280, 920); // Allow 200px above, 200px below
+        
+        // Setup page visibility handling - game continues even when tab is inactive
+        this.setupPageVisibilityHandling();
         
         this.createSpritesFromAtlases();
         this.createBackground();
@@ -647,6 +661,50 @@ export default class GameScene extends Phaser.Scene {
             fontStyle: 'bold',
             fontFamily: 'Arial'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+        
+        // Multiplayer UI (only shown in multiplayer mode)
+        if (this.isMultiplayer) {
+            // Opponent info panel
+            const opponentPanel = this.add.rectangle(1190, 300, 160, 120, 0x000000, 0.7);
+            opponentPanel.setStrokeStyle(4, 0xFFD700);
+            opponentPanel.setScrollFactor(0).setDepth(99);
+            
+            this.add.text(1190, 250, 'OPPONENT', {
+                fontSize: '22px',
+                fill: '#FFD700',
+                stroke: '#000',
+                strokeThickness: 4,
+                fontStyle: 'bold',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+            
+            this.opponentScoreText = this.add.text(1190, 290, 'Score: 0', {
+                fontSize: '20px',
+                fill: '#fff',
+                stroke: '#000',
+                strokeThickness: 3,
+                fontFamily: 'Arial'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+            
+            this.opponentLeavesText = this.add.text(1190, 320, 'Leaves: 0', {
+                fontSize: '20px',
+                fill: '#8BB300',
+                stroke: '#000',
+                strokeThickness: 3,
+                fontFamily: 'Arial'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+            
+            this.opponentStatusText = this.add.text(1190, 350, '🟢 Playing', {
+                fontSize: '18px',
+                fill: '#0f0',
+                stroke: '#000',
+                strokeThickness: 3,
+                fontFamily: 'Arial'
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
+            
+            // Setup multiplayer listeners
+            this.setupMultiplayerListeners();
+        }
     }
 
     spawnLeavesOnBamboo(bambooIndex) {
@@ -912,6 +970,11 @@ export default class GameScene extends Phaser.Scene {
         this.score += 0.1;
         this.scoreText.setText(Math.floor(this.score).toString());
         this.leafText.setText(this.currentLeaves.toString());
+        
+        // Send multiplayer updates
+        if (this.isMultiplayer) {
+            this.sendMultiplayerUpdate();
+        }
         
         if (this.playerBounds.y > 800) {
             this.gameOver();
@@ -1306,24 +1369,198 @@ export default class GameScene extends Phaser.Scene {
                rect1.y + rect1.height > rect2.y;
     }
 
+    setupMultiplayerListeners() {
+        if (!this.isMultiplayer) return;
+        
+        // Listen for opponent score updates
+        MultiplayerService.onOpponentScoreUpdate((data) => {
+            this.opponentScore = data.score;
+            this.opponentLeaves = data.leaves;
+            
+            if (this.opponentScoreText) {
+                this.opponentScoreText.setText(`Score: ${Math.floor(this.opponentScore)}`);
+            }
+            if (this.opponentLeavesText) {
+                this.opponentLeavesText.setText(`Leaves: ${this.opponentLeaves}`);
+            }
+        });
+        
+        // Listen for opponent death
+        MultiplayerService.onOpponentDied((data) => {
+            this.opponentDied = true;
+            this.opponentData = data;
+            
+            if (this.opponentStatusText) {
+                this.opponentStatusText.setText('💀 Died');
+                this.opponentStatusText.setColor('#ff0000');
+            }
+            
+            // If we're also dead, show results
+            if (!this.playerActive) {
+                this.showMultiplayerResults();
+            }
+        });
+        
+        // Listen for final game results
+        MultiplayerService.onGameResult((data) => {
+            console.log('Received game result:', data);
+            this.showMultiplayerResults(data);
+        });
+    }
+    
+    setupPageVisibilityHandling() {
+        // Prevent game from pausing when tab is hidden
+        // This ensures players can't cheat by switching tabs
+        // The game will continue running and player will likely die if they're not playing
+        
+        this.game.events.on('hidden', () => {
+            console.log('Game hidden - continuing gameplay');
+            // Don't pause the game - let it continue running
+            // Player will die if they don't come back to play
+        });
+        
+        this.game.events.on('visible', () => {
+            console.log('Game visible again');
+        });
+        
+        // Also handle browser page visibility API directly
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('Tab hidden - game continues running');
+                // Game keeps running even when tab is hidden
+                // This is intentional - player must stay focused!
+            } else {
+                console.log('Tab visible again');
+            }
+        });
+        
+        // Disable Phaser's default pause on blur behavior
+        this.game.config.pauseOnBlur = false;
+    }
+    
+    sendMultiplayerUpdate() {
+        if (!this.isMultiplayer || !this.playerActive) return;
+        
+        // Send score update every 30 frames (about 0.5 seconds)
+        if (this.time.now % 500 < 16) {
+            MultiplayerService.updateScore(Math.floor(this.score), this.currentLeaves);
+        }
+    }
+
     gameOver() {
         this.playerActive = false;
         
         // Stop all sounds
         this.sound.stopAll();
         
-        if (this.score > this.highScore) {
-            this.highScore = Math.floor(this.score);
-            localStorage.setItem('koalaHighScore', this.highScore.toString());
+        if (!this.isMultiplayer) {
+            // Single player mode
+            if (this.score > this.highScore) {
+                this.highScore = Math.floor(this.score);
+                localStorage.setItem('koalaHighScore', this.highScore.toString());
+            }
+            
+            this.scene.start('GameOverScene', {
+                score: Math.floor(this.score),
+                leaves: this.currentLeaves,
+                seasons: this.seasonsCompleted,
+                highScore: this.highScore,
+                killer: this.killer,
+                clockRotation: this.clockRotation
+            });
+        } else {
+            // Multiplayer mode
+            MultiplayerService.playerDied(
+                Math.floor(this.score),
+                this.currentLeaves,
+                this.killer
+            );
+            
+            // If opponent already died, show results immediately
+            if (this.opponentDied) {
+                this.showMultiplayerResults();
+            } else {
+                // Wait for opponent
+                this.waitingForOpponent = true;
+                this.showWaitingScreen();
+            }
+        }
+    }
+    
+    showWaitingScreen() {
+        // Dim the screen
+        const overlay = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.7);
+        overlay.setDepth(200);
+        
+        const waitText = this.add.text(640, 300, 'YOU DIED!', {
+            fontSize: '64px',
+            fill: '#ff0000',
+            stroke: '#000',
+            strokeThickness: 8,
+            fontStyle: 'bold',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
+        
+        const waitingText = this.add.text(640, 400, 'Waiting for opponent to finish...', {
+            fontSize: '36px',
+            fill: '#fff',
+            stroke: '#000',
+            strokeThickness: 6,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
+        
+        // Animate waiting text
+        this.tweens.add({
+            targets: waitingText,
+            alpha: 0.3,
+            duration: 800,
+            yoyo: true,
+            repeat: -1
+        });
+        
+        // Show current scores
+        this.add.text(640, 500, `Your Score: ${Math.floor(this.score)} | Leaves: ${this.currentLeaves}`, {
+            fontSize: '28px',
+            fill: '#FFD700',
+            stroke: '#000',
+            strokeThickness: 5,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
+        
+        this.add.text(640, 550, `Opponent: ${Math.floor(this.opponentScore)} | Leaves: ${this.opponentLeaves}`, {
+            fontSize: '28px',
+            fill: '#00FF00',
+            stroke: '#000',
+            strokeThickness: 5,
+            fontFamily: 'Arial'
+        }).setOrigin(0.5).setDepth(201);
+    }
+    
+    showMultiplayerResults(data) {
+        // Determine winner based on leaves collected
+        const myLeaves = this.currentLeaves;
+        const opponentLeaves = this.opponentData?.leaves || this.opponentLeaves;
+        
+        let winner = 'tie';
+        if (myLeaves > opponentLeaves) {
+            winner = 'you';
+        } else if (opponentLeaves > myLeaves) {
+            winner = 'opponent';
         }
         
+        // Go to multiplayer game over scene
         this.scene.start('GameOverScene', {
             score: Math.floor(this.score),
             leaves: this.currentLeaves,
             seasons: this.seasonsCompleted,
             highScore: this.highScore,
             killer: this.killer,
-            clockRotation: this.clockRotation
+            clockRotation: this.clockRotation,
+            multiplayer: true,
+            winner: winner,
+            opponentScore: Math.floor(this.opponentScore),
+            opponentLeaves: opponentLeaves
         });
     }
 }
+
