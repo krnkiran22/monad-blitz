@@ -6,10 +6,21 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     minify: 'esbuild',
-    sourcemap: false
+    sourcemap: false,
+    target: 'esnext',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          phaser: ['phaser']
+        }
+      }
+    }
   },
   server: {
     port: 3000,
     open: true
+  },
+  optimizeDeps: {
+    include: ['phaser']
   }
 });
